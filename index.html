@@ -1,0 +1,2833 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>急性病房智慧行動查房系統（15分鐘期限精準控管版）</title>
+<style>
+  :root {
+    --primary-blue: #1565c0;
+    --purple-btn: #8e24aa;
+    --teal-btn: #0b6e6e;
+    --peach-box: #ffccbc;
+    --bg-green-light: #e2f0cb;
+    --bg-gray: #dfe4e6;
+    --card-checked: #e8f5e9;
+    --border-checked: #43a047;
+    --card-late: #fff3e0;
+    --border-late: #ef6c00;
+    --card-overdue: #ffebee;
+    --border-overdue: #e53935;
+    --card-away: #e3f2fd;
+    --border-away: #1e88e5;
+  }
+
+  * {
+    box-sizing: border-box;
+    font-family: "Microsoft JhengHei", "PingFang TC", sans-serif;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    margin: 0;
+    padding: 0;
+    background-color: #cfd8dc;
+    color: #212121;
+  }
+
+  .container {
+    max-width: 560px;
+    margin: 0 auto;
+    min-height: 100vh;
+    background-color: #f4f5f7;
+    padding: 14px;
+    box-shadow: 0 0 15px rgba(0,0,0,0.12);
+    position: relative;
+  }
+
+  /* 15分鐘期限狀態橫幅 */
+  .slot-banner {
+    background: #1b5e20;
+    color: #fff;
+    padding: 9px 12px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.86rem;
+    font-weight: bold;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+  }
+  .slot-banner.warning {
+    background: #e65100;
+  }
+  .slot-banner.expired {
+    background: #b71c1c;
+    animation: pulseBanner 1.4s infinite;
+  }
+  @keyframes pulseBanner {
+    0% { opacity: 1; }
+    50% { opacity: 0.85; }
+    100% { opacity: 1; }
+  }
+  .slot-countdown {
+    background: rgba(0,0,0,0.28);
+    padding: 3px 8px;
+    border-radius: 6px;
+    color: #ffeb3b;
+    white-space: nowrap;
+  }
+
+  
+  .risk-summary-card {
+    background: #ffffff;
+    border: 1.5px solid #e57373;
+    border-radius: 10px;
+    padding: 10px 12px;
+    margin-bottom: 14px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+  }
+  .risk-summary-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.9rem;
+    font-weight: bold;
+    color: #b71c1c;
+    margin-bottom: 8px;
+  }
+  .risk-summary-chips {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+  }
+  .risk-stat-btn {
+    background: #fff5f5;
+    border: 1px solid #ef9a9a;
+    border-radius: 8px;
+    padding: 7px 6px;
+    font-size: 0.8rem;
+    font-weight: bold;
+    color: #212121;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    text-align: left;
+  }
+  .risk-stat-btn.has-patients {
+    background: #ffebee;
+    border-color: #c62828;
+    color: #b71c1c;
+  }
+  .risk-stat-btn:active {
+    transform: scale(0.97);
+  }
+  .risk-count-badge {
+    background: #ef5350;
+    color: #ffffff;
+    border-radius: 10px;
+    padding: 1px 6px;
+    font-size: 0.76rem;
+    font-weight: bold;
+    margin-left: 4px;
+    white-space: nowrap;
+  }
+  .risk-stat-btn:not(.has-patients) .risk-count-badge {
+    background: #b0bec5;
+  }
+  .risk-patient-item {
+    background: #f8f9fa;
+    border-left: 4px solid #c62828;
+    border-radius: 6px;
+    padding: 9px 10px;
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+  }
+  .risk-patient-item:active {
+    background: #ffebee;
+  }
+
+  
+  /* ================= 首頁：模擬醫院 病房查房系統 ================= */
+  #view-home {
+    display: none;
+    background-color: #d9ebf7;
+    margin: -14px;
+    padding: 48px 24px 36px 24px;
+    min-height: 100vh;
+    text-align: center;
+  }
+  .home-main-title {
+    font-size: 2.05rem;
+    font-weight: 800;
+    color: #111827;
+    line-height: 1.32;
+    margin: 24px auto 44px auto;
+    letter-spacing: 1px;
+  }
+  .home-cat-btn {
+    width: 100%;
+    max-width: 420px;
+    border: 1.5px solid rgba(0,0,0,0.08);
+    border-radius: 999px;
+    padding: 20px 24px;
+    margin: 0 auto 24px auto;
+    display: block;
+    font-size: 1.75rem;
+    font-weight: bold;
+    color: #111827;
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+    transition: transform 0.12s ease;
+  }
+  .home-cat-btn:active {
+    transform: scale(0.98);
+  }
+  .home-cat-acute {
+    background-color: #d7ebb8;
+  }
+  .home-cat-icu {
+    background-color: #b7dc82;
+  }
+  .home-cat-chronic {
+    background-color: #6ea832;
+  }
+  .home-cat-sub {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: normal;
+    color: #263238;
+    margin-top: 4px;
+  }
+  .btn-back-home {
+    width: 100%;
+    background-color: #546e7a;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    padding: 10px;
+    font-size: 1rem;
+    font-weight: bold;
+    cursor: pointer;
+    margin-bottom: 12px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.12);
+  }
+
+  /* ================= 第一層：急性病房護理站清單 ================= */
+  #view-wards {
+    background-color: var(--bg-green-light);
+    margin: -14px;
+    padding: 20px 18px;
+    min-height: 100vh;
+  }
+  .wards-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    gap: 8px;
+  }
+  .wards-title {
+    font-size: 1.4rem;
+    font-weight: bold;
+    color: #1b261d;
+    margin: 0;
+  }
+  .role-banner {
+    background: #fff8e1;
+    border: 1.5px solid #ffb300;
+    color: #6d4c41;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: bold;
+    margin-bottom: 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .staff-pill {
+    background: #ffffff;
+    border: 2px solid #558b2f;
+    color: #2e7d32;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.88rem;
+    font-weight: bold;
+    cursor: pointer;
+    white-space: nowrap;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+  }
+  .staff-pill:active { transform: scale(0.96); }
+
+  .ward-list-btn {
+    width: 100%;
+    background-color: #cfd5e3;
+    border: 1.5px solid #9fa8da;
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 14px;
+    font-size: 1.65rem;
+    font-weight: bold;
+    color: #111;
+    text-align: center;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+  }
+  .ward-list-btn:active { transform: scale(0.98); background-color: #bcc5d9; }
+  .ward-badge-count {
+    position: absolute;
+    right: 14px;
+    font-size: 0.8rem;
+    background: rgba(255,255,255,0.75);
+    padding: 3px 8px;
+    border-radius: 12px;
+    color: #333;
+  }
+  .ward-alert-dot {
+    position: absolute;
+    left: 14px;
+    font-size: 0.82rem;
+    background: #c62828;
+    color: white;
+    padding: 2px 8px;
+    border-radius: 12px;
+  }
+
+  /* ================= 第二層：組別選擇 ================= */
+  #view-groups {
+    display: none;
+    background-color: var(--bg-gray);
+    margin: -14px;
+    padding: 20px 18px;
+    min-height: 100vh;
+  }
+  .nav-back-purple {
+    width: 100%;
+    background-color: var(--purple-btn);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    padding: 11px;
+    font-size: 1.08rem;
+    font-weight: bold;
+    cursor: pointer;
+    margin-bottom: 12px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+  }
+  .lock-status-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: white;
+    padding: 8px 12px;
+    border-radius: 8px;
+    margin-bottom: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    font-size: 0.85rem;
+  }
+  .btn-lock-toggle {
+    border: none;
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-weight: bold;
+    font-size: 0.82rem;
+    cursor: pointer;
+  }
+  .btn-lock-active { background: #c62828; color: white; }
+  .btn-lock-open { background: #e8f5e9; color: #2e7d32; border: 1px solid #43a047; }
+
+  .group-header-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    gap: 6px;
+  }
+  .group-ward-title { font-size: 1.3rem; font-weight: bold; margin: 0; }
+  .group-config-btn {
+    background: #546e7a;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 7px 10px;
+    font-size: 0.82rem;
+    font-weight: bold;
+    cursor: pointer;
+  }
+  .group-card-btn {
+    width: 100%;
+    background-color: var(--teal-btn);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    padding: 22px 16px;
+    margin-bottom: 16px;
+    font-size: 1.45rem;
+    font-weight: bold;
+    text-align: center;
+    cursor: pointer;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.16);
+  }
+  .group-card-btn:active { transform: scale(0.98); background-color: #085454; }
+  .group-sub-status {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: normal;
+    margin-top: 6px;
+    color: #b2dfdb;
+  }
+
+  
+  .group-risk-card {
+    background: #ffffff;
+    border: 1.5px solid #e57373;
+    border-radius: 10px;
+    padding: 9px 11px;
+    margin-bottom: 12px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+  }
+  .group-risk-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.86rem;
+    font-weight: bold;
+    color: #b71c1c;
+    margin-bottom: 7px;
+  }
+
+  /* ================= 第三層：組別病人名冊 ================= */
+  #view-roster { display: none; }
+
+  .roster-top-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 4px 0 10px 0;
+    gap: 6px;
+  }
+  .roster-subtitle { font-size: 1.12rem; font-weight: bold; color: #212121; }
+  .dashboard-strip {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+    margin-bottom: 10px;
+  }
+  .stat-box {
+    background: white;
+    border-radius: 8px;
+    padding: 6px 4px;
+    text-align: center;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  .stat-num { font-size: 1.15rem; font-weight: bold; }
+  .stat-label { font-size: 0.72rem; color: #555; }
+  .num-green { color: #2e7d32; }
+  .num-orange { color: #e65100; }
+  .num-red { color: #c62828; }
+  .num-blue { color: #1565c0; }
+
+  .action-toolbar {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+    margin-bottom: 10px;
+  }
+  .tool-btn {
+    padding: 9px 4px;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    font-weight: bold;
+    cursor: pointer;
+    color: white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+  .btn-batch { background-color: #ef6c00; }
+  .btn-batch.active { background-color: #d84315; outline: 3px solid #ffcc80; }
+  .btn-paste { background-color: #0277bd; }
+  .btn-export { background-color: #2e7d32; }
+  .btn-reset { background-color: #455a64; }
+
+  .batch-panel {
+    display: none;
+    background: #fff3e0;
+    border: 2px solid #ef6c00;
+    border-radius: 10px;
+    padding: 10px;
+    margin-bottom: 10px;
+  }
+  .batch-panel.show { display: block; }
+  .batch-locs {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+    margin-top: 8px;
+  }
+  .batch-loc-btn {
+    background: white;
+    border: 1px solid #ef6c00;
+    border-radius: 6px;
+    padding: 6px 2px;
+    font-size: 0.8rem;
+    font-weight: bold;
+    color: #e65100;
+    cursor: pointer;
+  }
+
+  .roster-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .bed-card {
+    background: white;
+    border-left: 6px solid #bdbdbd;
+    border-radius: 8px;
+    padding: 10px 8px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-height: 68px;
+  }
+  .bed-card:active { transform: scale(0.98); }
+  .bed-card.empty { background: #eeeeee; border-left-color: #9e9e9e; color: #616161; }
+  .bed-card.checked { background: var(--card-checked); border-left-color: var(--border-checked); }
+  .bed-card.late { background: var(--card-late); border-left-color: var(--border-late); }
+  .bed-card.away { background: var(--card-away); border-left-color: var(--border-away); }
+  .bed-card.overdue {
+    background: var(--card-overdue);
+    border-left-color: var(--border-overdue);
+    animation: pulseRed 2s infinite;
+  }
+  @keyframes pulseRed {
+    0% { box-shadow: 0 0 0 0 rgba(229, 57, 53, 0.4); }
+    70% { box-shadow: 0 0 0 6px rgba(229, 57, 53, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(229, 57, 53, 0); }
+  }
+  .bed-header { display: flex; justify-content: space-between; align-items: center; font-size: 1.02rem; font-weight: bold; }
+  .bed-meta { display: flex; justify-content: space-between; align-items: center; margin-top: 6px; font-size: 0.78rem; }
+  .loc-tag { padding: 2px 6px; border-radius: 4px; font-weight: bold; background: rgba(0,0,0,0.07); }
+  .checked .loc-tag { background: #c8e6c9; color: #1b5e20; }
+  .late .loc-tag { background: #ffe0b2; color: #e65100; }
+  .away .loc-tag { background: #bbdefb; color: #0d47a1; }
+  .overdue .loc-tag { background: #ffcdd2; color: #b71c1c; }
+
+  .risk-dots { display: flex; gap: 3px; flex-wrap: wrap; margin-top: 4px; }
+  .risk-pill { background: #c62828; color: white; font-size: 0.65rem; padding: 1px 5px; border-radius: 4px; }
+  .batch-checkbox { width: 20px; height: 20px; accent-color: #ef6c00; }
+
+  /* ================= 第四層：個人查房詳情頁 ================= */
+  #view-detail { display: none; }
+
+  .detail-top-grid {
+    display: grid;
+    grid-template-columns: 1.15fr 0.75fr 1.35fr;
+    gap: 6px;
+    margin-bottom: 12px;
+  }
+  .box-patient {
+    background: var(--primary-blue);
+    color: white;
+    border-radius: 8px;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    font-weight: bold;
+    font-size: 1.15rem;
+    line-height: 1.3;
+  }
+  .box-jump { display: flex; flex-direction: column; gap: 4px; }
+  .jump-input {
+    width: 100%;
+    background: var(--peach-box);
+    border: none;
+    border-radius: 6px;
+    padding: 6px 4px;
+    text-align: center;
+    font-weight: bold;
+    font-size: 0.9rem;
+    color: #333;
+  }
+  .jump-go {
+    width: 100%;
+    background: var(--teal-btn);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 6px;
+    font-weight: bold;
+    font-size: 1rem;
+    cursor: pointer;
+  }
+  .box-time {
+    background: var(--primary-blue);
+    color: white;
+    border-radius: 8px;
+    padding: 8px 6px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    font-size: 0.85rem;
+    font-weight: bold;
+    line-height: 1.35;
+    cursor: pointer;
+  }
+
+  .precautions-card {
+    background: white;
+    border-radius: 10px;
+    padding: 10px;
+    margin-bottom: 12px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  }
+  .precautions-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px 6px;
+  }
+  .toggle-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.85rem;
+    font-weight: bold;
+    color: #333;
+    background: #f8f9fa;
+    padding: 5px 6px;
+    border-radius: 6px;
+  }
+  .switch { position: relative; display: inline-block; width: 40px; height: 22px; flex-shrink: 0; }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .slider {
+    position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+    background-color: #9e9e9e; transition: .2s; border-radius: 22px;
+  }
+  .slider:before {
+    position: absolute; content: ""; height: 16px; width: 16px; left: 3px; bottom: 3px;
+    background-color: white; transition: .2s; border-radius: 50%;
+  }
+  input:checked + .slider { background-color: #b71c1c; }
+  input:checked + .slider:before { transform: translateX(18px); }
+
+  .locations-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .loc-btn {
+    background: white;
+    border: 2px solid #e0e0e0;
+    border-radius: 12px;
+    padding: 10px 4px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+  }
+  .loc-btn:active { transform: scale(0.95); background: #e0f2f1; }
+  .loc-btn.selected-loc { border: 3px solid #2e7d32; background: #e8f5e9; }
+  .loc-emoji { font-size: 2.2rem; margin-bottom: 4px; line-height: 1; }
+  .loc-text { font-size: 0.95rem; font-weight: bold; color: #212121; }
+
+
+
+
+  /* 防逃跑即時警示彈窗樣式 */
+  .escape-alert-box {
+    background: #ffffff;
+    border-radius: 14px;
+    width: 100%;
+    max-width: 420px;
+    padding: 20px 16px;
+    text-align: center;
+    box-shadow: 0 8px 28px rgba(0,0,0,0.4);
+    border-top: 8px solid #c62828;
+    border: 2px solid #c62828;
+  }
+  .escape-alert-title {
+    font-size: 1.25rem;
+    font-weight: bold;
+    color: #b71c1c;
+    line-height: 1.45;
+    margin-bottom: 10px;
+  }
+  .escape-alert-sub {
+    background: #ffebee;
+    color: #8e0000;
+    padding: 10px;
+    border-radius: 8px;
+    font-size: 0.92rem;
+    font-weight: bold;
+    margin-bottom: 16px;
+    line-height: 1.5;
+  }
+  .btn-escape-confirm {
+    width: 100%;
+    background: #c62828;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    padding: 15px;
+    font-size: 1.12rem;
+    font-weight: bold;
+    cursor: pointer;
+    margin-bottom: 10px;
+    box-shadow: 0 3px 6px rgba(198,40,40,0.3);
+  }
+  .btn-escape-confirm:active { transform: scale(0.98); background: #8e0000; }
+  .btn-escape-cancel {
+    width: 100%;
+    background: #eceff1;
+    color: #333;
+    border: 1px solid #90a4ae;
+    border-radius: 10px;
+    padding: 12px;
+    font-size: 1rem;
+    font-weight: bold;
+    cursor: pointer;
+  }
+  .btn-escape-cancel:active { transform: scale(0.98); background: #cfd8dc; }
+
+  /* 保護室處置與安全確認彈窗樣式 */
+  .seclusion-box {
+    background: #fff500;
+    color: #111111;
+    border-radius: 10px;
+    width: 100%;
+    max-width: 420px;
+    padding: 22px 16px;
+    text-align: center;
+    box-shadow: 0 8px 28px rgba(0,0,0,0.4);
+    border: 2px solid #d4c400;
+  }
+  .seclusion-title {
+    font-size: 1.35rem;
+    font-weight: bold;
+    color: #111;
+    margin-bottom: 14px;
+    line-height: 1.4;
+  }
+  .seclusion-sub {
+    font-size: 1.05rem;
+    font-weight: bold;
+    color: #111;
+    line-height: 1.55;
+    margin-bottom: 18px;
+  }
+  .seclusion-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+  .btn-seclusion-teal {
+    background: #0b6e6e;
+    color: #ffffff;
+    border: none;
+    border-radius: 8px;
+    padding: 16px 8px;
+    font-size: 1.15rem;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.2);
+  }
+  .btn-seclusion-teal:active { transform: scale(0.97); background: #085454; }
+  .btn-seclusion-cancel {
+    width: 100%;
+    background: #0b6e6e;
+    color: #ffffff;
+    border: none;
+    border-radius: 8px;
+    padding: 15px 10px;
+    font-size: 1.15rem;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.2);
+  }
+  .btn-seclusion-cancel:active { transform: scale(0.98); background: #085454; }
+
+  /* 連續如廁警示彈窗樣式 */
+  .toilet-alert-box {
+    background: #ffffff;
+    border-radius: 14px;
+    width: 100%;
+    max-width: 420px;
+    padding: 20px 16px;
+    text-align: center;
+    box-shadow: 0 8px 28px rgba(0,0,0,0.35);
+    border-top: 8px solid #d84315;
+  }
+  .toilet-alert-title {
+    font-size: 1.25rem;
+    font-weight: bold;
+    color: #212121;
+    line-height: 1.45;
+    margin-bottom: 10px;
+  }
+  .toilet-alert-sub {
+    background: #fff3e0;
+    color: #bf360c;
+    padding: 8px 10px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: bold;
+    margin-bottom: 16px;
+    line-height: 1.4;
+  }
+  .btn-toilet-yes {
+    width: 100%;
+    background: #2e7d32;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    padding: 15px;
+    font-size: 1.15rem;
+    font-weight: bold;
+    cursor: pointer;
+    margin-bottom: 12px;
+    box-shadow: 0 3px 6px rgba(46,125,50,0.3);
+  }
+  .btn-toilet-yes:active { transform: scale(0.98); background: #1b5e20; }
+  .btn-toilet-no {
+    width: 100%;
+    background: #c62828;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    padding: 15px;
+    font-size: 1.15rem;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 3px 6px rgba(198,40,40,0.3);
+  }
+  .btn-toilet-no:active { transform: scale(0.98); background: #8e0000; }
+
+  /* 彈窗樣式 */
+  .modal {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.55);
+    z-index: 999;
+    justify-content: center;
+    align-items: center;
+    padding: 14px;
+  }
+  .modal-content {
+    background: white;
+    border-radius: 12px;
+    width: 100%;
+    max-width: 500px;
+    max-height: 88vh;
+    overflow-y: auto;
+    padding: 16px;
+  }
+  .staff-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 12px 0; }
+  .staff-choice-btn {
+    padding: 12px 6px; border: 2px solid #cfd8dc; border-radius: 8px;
+    background: #f8f9fa; font-size: 1rem; font-weight: bold; color: #212121; cursor: pointer;
+  }
+  .staff-choice-btn.active { background: #e8f5e9; border-color: #2e7d32; color: #1b5e20; }
+  .tab-bar { display: flex; gap: 6px; margin-bottom: 12px; border-bottom: 2px solid #eee; padding-bottom: 8px; }
+  .tab-btn { flex: 1; padding: 8px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; background: #e0e0e0; color: #333; }
+  .tab-btn.active { background: #0277bd; color: white; }
+  .paste-area { width: 100%; height: 200px; padding: 10px; border: 2px solid #0277bd; border-radius: 8px; font-size: 0.95rem; line-height: 1.5; }
+  .paste-hint { background: #e1f5fe; color: #01579b; padding: 8px 10px; border-radius: 6px; font-size: 0.82rem; margin-bottom: 10px; line-height: 1.4; }
+  .edit-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .edit-row span { width: 68px; font-weight: bold; }
+  .edit-row input { flex: 1; padding: 6px 8px; border: 1px solid #ccc; border-radius: 6px; font-size: 0.95rem; }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <!-- ================= 首頁：類別選擇 ================= -->
+  <div id="view-home">
+    <h1 class="home-main-title">模擬醫院<br>病房查房系統</h1>
+    <p style="color:#b71c1c;font-weight:bold;">公開模擬測試｜禁止輸入真實病人或員工資料</p>
+
+    <button type="button" class="home-cat-btn home-cat-acute" onclick="selectWardCategory('acute')">
+      <span>急性病房</span>
+      <span class="home-cat-sub" id="home-sub-acute">3A、4A、5A、6B、7A、7B、3C</span>
+    </button>
+
+    <button type="button" class="home-cat-btn home-cat-icu" onclick="selectWardCategory('icu')">
+      <span>加護病房</span>
+      <span class="home-cat-sub" id="home-sub-icu">1A、5B、6A</span>
+    </button>
+
+    <button type="button" class="home-cat-btn home-cat-chronic" onclick="selectWardCategory('chronic')">
+      <span>慢性病房</span>
+      <span class="home-cat-sub" id="home-sub-chronic">4C、5C、6C、7C</span>
+    </button>
+  </div>
+
+  <!-- ================= 第一層：急性病房護理站清單 ================= -->
+  <div id="view-wards">
+    <button type="button" class="btn-back-home" onclick="goToView('home')">↩ 返回病房類別選擇（急性／加護／慢性）</button>
+    <div class="wards-header" style="justify-content:center;">
+      <h1 class="wards-title" style="text-align:center; width:100%;" id="wards-category-title">病房護理站查房清單</h1>
+    </div>
+
+    <!-- 15分鐘黃金查房期限橫幅 -->
+    <div class="slot-banner js-slot-banner">
+      <span class="js-slot-msg">🟢 12:00 輪次（12:15前正常）</span>
+      <span class="slot-countdown js-slot-timer">剩 12:30</span>
+    </div>
+
+    <div class="role-banner">
+      <span>👑 督導／護理長管理模式（PIN保護已啟用）</span>
+      <button onclick="changeAdminPin()" style="background:white; border:1px solid #8d6e63; border-radius:6px; padding:3px 8px; font-size:0.78rem; cursor:pointer;">🔑 改PIN碼</button>
+    </div>
+
+    
+    <!-- 特殊防範狀況即時統計（點選數量可查看名單） -->
+    <div class="risk-summary-card" id="wards-risk-summary">
+      <div class="risk-summary-header">
+        <span>🚨 特殊防範狀況統計（點選查看病人）</span>
+        <span id="wards-risk-scope-label" style="font-size:0.78rem; color:#546e7a;">全院在院</span>
+      </div>
+      <div class="risk-summary-chips" id="wards-risk-chips"></div>
+    </div>
+
+    <div id="ward-buttons-container"></div>
+
+    <div style="margin-top:16px; display:flex; gap:8px;">
+      <button onclick="addNewWard()" style="flex:1; padding:12px; background:#558b2f; color:white; border:none; border-radius:10px; font-weight:bold; font-size:0.92rem; cursor:pointer;">➕ 新增病房</button>
+      <button onclick="openDeleteWardPrompt()" style="flex:1; padding:12px; background:#c62828; color:white; border:none; border-radius:10px; font-weight:bold; font-size:0.92rem; cursor:pointer;">🗑️ 刪除病房</button>
+      <button onclick="exportAllCSV()" style="flex:1; padding:12px; background:#0277bd; color:white; border:none; border-radius:10px; font-weight:bold; font-size:0.92rem; cursor:pointer;">🔒 匯出全院查房紀錄</button>
+    </div>
+  </div>
+
+  <!-- ================= 第二層：護理照護分組選擇 ================= -->
+  <div id="view-groups">
+    <button class="nav-back-purple" id="btn-back-to-wards" onclick="goToView('wards')">↩ 返回本類別病房清單（督導／阿長）</button>
+
+    <div class="slot-banner js-slot-banner">
+      <span class="js-slot-msg">🟢 12:00 輪次（12:15前正常）</span>
+      <span class="slot-countdown js-slot-timer">剩 12:30</span>
+    </div>
+
+    <div class="lock-status-bar">
+      <span id="lock-status-text">🔓 目前為跨病房管理模式</span>
+      <button class="btn-lock-toggle btn-lock-open" id="btn-lock-toggle" onclick="toggleWardLock()">🔒 鎖定本機為此病房專用</button>
+    </div>
+
+    <div class="group-header-bar">
+      <h2 class="group-ward-title" id="group-view-ward-title">3A病房 分組</h2>
+      <div style="display:flex; gap:6px; align-items:center;">
+        <div class="staff-pill" onclick="openStaffModal()">👤 <span class="js-staff-name">測試護理師</span> ▾</div>
+        <button class="group-config-btn" onclick="openGroupConfigModal()">⚙️ 床數</button>
+      </div>
+    </div>
+    <div id="group-buttons-container"></div>
+
+    <div style="margin-top:16px;">
+      <button onclick="exportWardCSV()" style="width:100%; padding:14px; background:#2e7d32; color:white; border:none; border-radius:10px; font-weight:bold; font-size:1.05rem; cursor:pointer; box-shadow:0 3px 6px rgba(0,0,0,0.16);">📥 匯出全病房查房紀錄（含所有組別）</button>
+    </div>
+  </div>
+
+  <!-- ================= 第三層：該組病人名冊 ================= -->
+  <div id="view-roster">
+    <button class="nav-back-purple" onclick="goToView('groups')">↩ 返回組別選擇</button>
+
+    <div class="slot-banner js-slot-banner">
+      <span class="js-slot-msg">🟢 12:00 輪次（12:15前正常）</span>
+      <span class="slot-countdown js-slot-timer">剩 12:30</span>
+    </div>
+
+    <div class="roster-top-row">
+      <div class="roster-subtitle" id="roster-group-title">3A 名冊 (1~18床)</div>
+      <div class="staff-pill" onclick="openStaffModal()" title="點擊快速切換查房人員">👤 <span class="js-staff-name">測試護理師</span> ▾</div>
+    </div>
+
+    
+    <!-- 本組特殊防範狀況即時統計（點選數量可查看本組名單） -->
+    <div class="group-risk-card" id="roster-risk-summary">
+      <div class="group-risk-header">
+        <span>🚨 本組特殊防範狀況統計（點選查看病人）</span>
+        <span id="roster-risk-scope-label" style="font-size:0.76rem; color:#546e7a;">3A A組</span>
+      </div>
+      <div class="risk-summary-chips" id="roster-risk-chips"></div>
+    </div>
+
+    <div class="dashboard-strip">
+      <div class="stat-box">
+        <div class="stat-num num-green" id="stat-checked">0</div>
+        <div class="stat-label">準時完成✅</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num num-orange" id="stat-late">0</div>
+        <div class="stat-label">逾時補查⚠️</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num num-red" id="stat-overdue">0</div>
+        <div class="stat-label">尚未查房🔴</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num num-blue" id="stat-away">0</div>
+        <div class="stat-label">外出/8樓</div>
+      </div>
+    </div>
+
+    <div class="action-toolbar">
+      <button class="tool-btn btn-batch" id="btn-batch-toggle" onclick="toggleBatchMode()">☑️ 批次快點</button>
+      <button class="tool-btn btn-paste" onclick="openRosterModal('paste')">📋 貼上名冊</button>
+      <button class="tool-btn btn-export" onclick="exportWardCSV()">📥 匯出紀錄</button>
+      <button class="tool-btn btn-reset" onclick="startNewGroupRound()">🔒 手動重置</button>
+    </div>
+
+    <div class="batch-panel" id="batch-panel">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <strong>已勾選 <span id="batch-count" style="color:#d84315; font-size:1.1rem;">0</span> 床，點選去向一鍵完成：</strong>
+        <button onclick="selectAllOverdue()" style="padding:4px 8px; border-radius:4px; border:1px solid #888; background:white;">全選未查</button>
+      </div>
+      <div class="batch-locs">
+        <button class="batch-loc-btn" onclick="applyBatchLocation('大廳中')">📺 大廳中</button>
+        <button class="batch-loc-btn" onclick="applyBatchLocation('房間中')">📖 房間中</button>
+        <button class="batch-loc-btn" onclick="applyBatchLocation('睡眠中')">😴 睡眠中</button>
+        <button class="batch-loc-btn" onclick="applyBatchLocation('8樓中')">🤸 8樓中</button>
+        <button class="batch-loc-btn" onclick="applyBatchLocation('會客中')">👨‍👩‍👧 會客中</button>
+        <button class="batch-loc-btn" onclick="applyBatchLocation('檢查中')">🩺 檢查中</button>
+        <button class="batch-loc-btn" onclick="applyBatchLocation('外出中')">📋 外出中</button>
+        <button class="batch-loc-btn" onclick="toggleBatchMode()" style="background:#eee; color:#333; border-color:#999;">取消</button>
+      </div>
+    </div>
+
+    <div class="roster-grid" id="roster-grid"></div>
+  </div>
+
+  <!-- ================= 第四層：個人查房與防範設定頁 ================= -->
+  <div id="view-detail">
+    <div class="detail-top-grid">
+      <div class="box-patient" id="detail-patient-box">3A-09<br>模擬病人09</div>
+      <div class="box-jump">
+        <input type="number" id="jump-bed-input" class="jump-input" placeholder="輸床號" min="1">
+        <button class="jump-go" onclick="jumpToBed()">GO</button>
+      </div>
+      <div class="box-time" onclick="openStaffModal()" title="點擊可立即更換查房人員">
+        <div id="live-date">2000/01/01</div>
+        <div id="live-clock">11:36 查房人員：</div>
+        <div style="text-decoration:underline;"><span class="js-staff-name">測試護理師</span> ✎</div>
+      </div>
+    </div>
+
+    <div class="precautions-card">
+      <div class="precautions-grid" id="precautions-grid"></div>
+    </div>
+
+    <div class="locations-grid" id="locations-grid"></div>
+
+    <button class="nav-back-purple" onclick="goToView('roster')">↩ 返回病人名冊（僅儲存防範設定）</button>
+  </div>
+</div>
+
+
+
+
+<!-- 防逃跑病人外出/外宿/檢查中/8樓中/會客中警示彈窗 -->
+<div class="modal" id="escape-alert-modal" style="z-index: 1270;">
+  <div class="escape-alert-box">
+    <div style="font-size:2.4rem; margin-bottom:6px;">🚨🏃</div>
+    <div class="escape-alert-title" id="escape-alert-main-text">防逃跑病人安全警示</div>
+    <div class="escape-alert-sub" id="escape-alert-detail-text">請確認已落實防逃陪同、交接或安全檢核！</div>
+    <button class="btn-escape-confirm" onclick="confirmEscapeAlert()">✅ 已確認防逃安全，完成登錄</button>
+    <button class="btn-escape-cancel" onclick="closeEscapeAlertModal()">↩ 取消／重新選擇去向</button>
+  </div>
+</div>
+
+<!-- 保護室處置項目選擇彈窗 -->
+<div class="modal" id="seclusion-step1-modal" style="z-index: 1250;">
+  <div class="seclusion-box">
+    <div class="seclusion-title" id="sec-step1-patient">請選擇保護室處置項目</div>
+    <div class="seclusion-row">
+      <button class="btn-seclusion-teal" onclick="openSeclusionStep2('isolation')">🔔 隔離中</button>
+      <button class="btn-seclusion-teal" onclick="openSeclusionStep2('restraint')">↻ 約束中</button>
+    </div>
+    <button class="btn-seclusion-cancel" onclick="closeSeclusionModals()">誤觸保護室取消</button>
+  </div>
+</div>
+
+<!-- 保護室安全確認彈窗 -->
+<div class="modal" id="seclusion-step2-modal" style="z-index: 1260;">
+  <div class="seclusion-box">
+    <div class="seclusion-title" id="sec-step2-heading">【隔離安全確認】</div>
+    <div class="seclusion-sub" id="sec-step2-body">已確認病人精神狀態及環境安全無虞。</div>
+    <div class="seclusion-row">
+      <button class="btn-seclusion-teal" onclick="confirmSeclusionComplete()">🔔 確認完成</button>
+      <button class="btn-seclusion-teal" onclick="backToSeclusionStep1()">↻ 回上一頁</button>
+    </div>
+    <button class="btn-seclusion-cancel" onclick="closeSeclusionModals()">誤觸保護室取消</button>
+  </div>
+</div>
+
+<!-- 連續如廁即時警示彈窗 -->
+<div class="modal" id="toilet-alert-modal" style="z-index: 1200;">
+  <div class="toilet-alert-box">
+    <div style="font-size:2.4rem; margin-bottom:6px;">🚽⚠️</div>
+    <div class="toilet-alert-title" id="toilet-alert-main-text">請確認廁所內病人是否有回應</div>
+    <div class="toilet-alert-sub" id="toilet-alert-detail-text">前次查房亦為「如廁中」，請立即確認病人安全狀態！</div>
+    <button class="btn-toilet-yes" onclick="confirmToiletResponse(true)">✅ 是（有回應）</button>
+    <button class="btn-toilet-no" onclick="confirmToiletResponse(false)">🔔 否（無回應）</button>
+  </div>
+</div>
+
+
+
+<!-- 特殊防範病人清單彈窗 -->
+<div class="modal" id="risk-patients-modal" style="z-index: 1290;">
+  <div class="modal-content" style="max-width: 440px;">
+    <h3 style="margin-top:0; color:#b71c1c;" id="risk-modal-title">🚨 防暴力病人名單</h3>
+    <div id="risk-modal-subtitle" style="font-size:0.84rem; color:#546e7a; margin-bottom:10px;">
+      點選任一病人床位可前往該床查房與防範設定頁。
+    </div>
+    <div id="risk-modal-list" style="max-height: 55vh; overflow-y: auto;"></div>
+    <div style="margin-top:12px; text-align:right;">
+      <button onclick="closeRiskPatientsModal()" style="padding:10px 18px; background:#546e7a; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer;">關閉</button>
+    </div>
+  </div>
+</div>
+
+<!-- 匯出日期區間選擇彈窗 -->
+<div class="modal" id="export-range-modal" style="z-index: 1280;">
+  <div class="modal-content" style="max-width: 420px;">
+    <h3 style="margin-top:0; color:#1b5e20;" id="export-modal-title">📥 選擇匯出查房紀錄日期區間</h3>
+    <div style="font-size:0.84rem; color:#455a64; margin-bottom:12px;">
+      ※ 系統不會清除任何本機歷史資料，請放心匯出。
+    </div>
+    <div style="display:flex; gap:6px; margin-bottom:12px;">
+      <button onclick="setExportDatePreset('today')" style="flex:1; padding:8px 4px; background:#e8f5e9; color:#1b5e20; border:1px solid #43a047; border-radius:6px; font-weight:bold; font-size:0.84rem; cursor:pointer;">今天</button>
+      <button onclick="setExportDatePreset('7days')" style="flex:1; padding:8px 4px; background:#e3f2fd; color:#0d47a1; border:1px solid #1e88e5; border-radius:6px; font-weight:bold; font-size:0.84rem; cursor:pointer;">近 7 天</button>
+      <button onclick="setExportDatePreset('month')" style="flex:1; padding:8px 4px; background:#fff3e0; color:#e65100; border:1px solid #ef6c00; border-radius:6px; font-weight:bold; font-size:0.84rem; cursor:pointer;">本月</button>
+      <button onclick="setExportDatePreset('all')" style="flex:1; padding:8px 4px; background:#eceff1; color:#37474f; border:1px solid #90a4ae; border-radius:6px; font-weight:bold; font-size:0.84rem; cursor:pointer;">全部日期</button>
+    </div>
+    <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:14px;">
+      <div>
+        <label style="font-weight:bold; font-size:0.9rem;">起始日期：</label>
+        <input type="date" id="export-start-date" style="width:100%; padding:8px; margin-top:4px; border:1px solid #999; border-radius:8px; font-size:1rem;">
+      </div>
+      <div>
+        <label style="font-weight:bold; font-size:0.9rem;">結束日期：</label>
+        <input type="date" id="export-end-date" style="width:100%; padding:8px; margin-top:4px; border:1px solid #999; border-radius:8px; font-size:1rem;">
+      </div>
+    </div>
+    <div style="display:flex; gap:10px;">
+      <button onclick="confirmExportWithRange()" style="flex:1; padding:12px; background:#2e7d32; color:white; border:none; border-radius:8px; font-weight:bold; font-size:1rem; cursor:pointer;">📥 確認匯出 CSV</button>
+      <button onclick="closeExportRangeModal()" style="padding:12px 16px; background:#757575; color:white; border:none; border-radius:8px; font-weight:bold; font-size:1rem; cursor:pointer;">取消</button>
+    </div>
+  </div>
+</div>
+
+<!-- 快速切換查房人員彈窗 -->
+<div class="modal" id="staff-modal">
+  <div class="modal-content">
+    <h3 style="margin-top:0;">👤 點選目前查房護理人員（1秒切換）</h3>
+    <div class="staff-grid" id="staff-grid"></div>
+
+    <div style="border-top:1px solid #eee; padding-top:12px; margin-top:8px;">
+      <div style="font-size:0.88rem; font-weight:bold; margin-bottom:6px; color:#455a64;">臨時輸入或新增人員至快捷按鈕：</div>
+      <div style="display:flex; gap:6px;">
+        <input type="text" id="new-staff-input" placeholder="輸入姓名（如：測試護理師A）" style="flex:1; padding:8px 10px; border:1px solid #999; border-radius:8px; font-size:0.95rem;">
+        <button onclick="addAndSelectStaff()" style="padding:8px 14px; background:#2e7d32; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer;">確定切換</button>
+      </div>
+      <div style="margin-top:10px; display:flex; justify-content:space-between;">
+        <button onclick="editStaffListBulk()" style="padding:6px 10px; background:#eceff1; color:#333; border:1px solid #b0bec5; border-radius:6px; font-size:0.8rem; cursor:pointer;">📝 編輯人員按鈕清單</button>
+        <button onclick="closeStaffModal()" style="padding:6px 16px; background:#757575; color:white; border:none; border-radius:6px; font-weight:bold; cursor:pointer;">關閉</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 一鍵貼上／逐床編輯名冊彈窗 -->
+<div class="modal" id="roster-modal">
+  <div class="modal-content">
+    <div class="tab-bar">
+      <button class="tab-btn active" id="tab-paste" onclick="switchModalTab('paste')">📋 一鍵貼上整批更新（全病房）</button>
+      <button class="tab-btn" id="tab-manual" onclick="switchModalTab('manual')">✏️ 逐床微調（本組）</button>
+    </div>
+
+    <div id="panel-paste">
+      <div class="paste-hint">
+        <strong>💡 直接從 NIS 或 Excel 複製該病房完整名單貼上即可（自動分配到 A/B/C/D 組）：</strong><br>
+        範例格式：<code>3A-01 王大明</code> 或 <code>01 王大明</code>（寫「空床」或省略自動設為空床）<br>
+        ※ 若病人姓名未變動，原本設定的「防範開關」與「查房紀錄」會自動保留！
+      </div>
+      <textarea id="paste-textarea" class="paste-area" placeholder="請在此貼上該病房名單..."></textarea>
+      <div style="display:flex; gap:8px; margin-top:10px;">
+        <button onclick="fillWardToPasteBox()" style="padding:8px 10px; background:#eceff1; color:#333; border:1px solid #b0bec5; border-radius:6px; font-size:0.82rem; cursor:pointer;">帶入目前病房名單</button>
+        <button onclick="processBatchPaste()" style="flex:1; padding:10px; background:#0277bd; color:white; border:none; border-radius:8px; font-weight:bold; font-size:0.95rem; cursor:pointer;">⚡ 立即解析並更新</button>
+        <button onclick="closeRosterModal()" style="padding:10px 14px; background:#757575; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer;">取消</button>
+      </div>
+    </div>
+
+    <div id="panel-manual" style="display:none;">
+      <div id="edit-list"></div>
+      <div style="display:flex; gap:10px; margin-top:14px;">
+        <button onclick="saveManualNames()" style="flex:1; padding:10px; background:#2e7d32; color:white; border:none; border-radius:8px; font-weight:bold;">儲存變更</button>
+        <button onclick="closeRosterModal()" style="flex:1; padding:10px; background:#757575; color:white; border:none; border-radius:8px; font-weight:bold;">取消</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 設定病房總床數與 A/B/C/D 分組床號區間彈窗 -->
+<div class="modal" id="group-config-modal">
+  <div class="modal-content">
+    <h3 style="margin-top:0;" id="config-modal-title">⚙️ 設定病房總床數與分組區間</h3>
+    <div style="margin-bottom:10px;">
+      <label style="font-weight:bold;">病房總床數：</label>
+      <input type="number" id="cfg-total-beds" min="1" max="120" style="width:75px; padding:6px; font-size:1rem; border:1px solid #888; border-radius:6px;"> 床
+      <div style="margin-top:8px; display:flex; gap:6px; flex-wrap:wrap;">
+        <button onclick="autoSplitGroups(2)" style="padding:6px 10px; background:#0b6e6e; color:white; border:none; border-radius:6px; font-size:0.82rem; font-weight:bold; cursor:pointer;">自動分 2 組</button>
+        <button onclick="autoSplitGroups(3)" style="padding:6px 10px; background:#0277bd; color:white; border:none; border-radius:6px; font-size:0.82rem; font-weight:bold; cursor:pointer;">自動分 3 組</button>
+        <button onclick="autoSplitGroups(4)" style="padding:6px 10px; background:#546e7a; color:white; border:none; border-radius:6px; font-size:0.82rem; font-weight:bold; cursor:pointer;">自動分 4 組</button>
+      </div>
+      <div style="font-size:0.78rem; color:#555; margin-top:6px;">※ 沒用到的組別（例如 C、D 組）把床號留白或填 0，畫面就不會顯示該組按鈕。</div>
+    </div>
+    <div id="cfg-groups-list"></div>
+    <div style="display:flex; gap:10px; margin-top:14px;">
+      <button onclick="saveGroupConfig()" style="flex:1; padding:10px; background:#2e7d32; color:white; border:none; border-radius:8px; font-weight:bold;">儲存設定</button>
+      <button onclick="closeGroupConfigModal()" style="flex:1; padding:10px; background:#757575; color:white; border:none; border-radius:8px; font-weight:bold;">取消</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const ACUTE_WARD_NAMES = ['3A', '4A', '5A', '6B', '7A', '7B', '3C'];
+  const ICU_WARD_NAMES = ['1A', '5B', '6A'];
+  const CHRONIC_WARD_NAMES = ['4C', '5C', '6C', '7C'];
+  const DEFAULT_WARD_NAMES = [...ACUTE_WARD_NAMES, ...ICU_WARD_NAMES, ...CHRONIC_WARD_NAMES];
+
+  const CATEGORY_META = {
+    acute: { label: '急性病房', defaults: ACUTE_WARD_NAMES },
+    icu: { label: '加護病房', defaults: ICU_WARD_NAMES },
+    chronic: { label: '慢性病房', defaults: CHRONIC_WARD_NAMES }
+  };
+
+  let activeWardCategory = 'acute';
+
+  const DEFAULT_GROUPS_TEMPLATE = [
+    { id: 'A', name: 'A 組', start: 1, end: 18 },
+    { id: 'B', name: 'B 組', start: 19, end: 35 },
+    { id: 'C', name: 'C 組', start: 36, end: 50 },
+    { id: 'D', name: 'D 組', start: 51, end: 66 }
+  ];
+
+  const DEFAULT_STAFF_LIST = ['護理師'];
+  const NEW_WARD_DEFAULT_STAFF_LIST = ['護理師'];
+
+  const SAMPLE_3A = [
+    { id: 1, name: '模擬病人01' }, { id: 2, name: '模擬病人02' }, { id: 3, name: '' },
+    { id: 4, name: '模擬病人04' }, { id: 5, name: '模擬病人05' }, { id: 6, name: '模擬病人06' },
+    { id: 7, name: '模擬病人07' }, { id: 8, name: '模擬病人08' }, { id: 9, name: '模擬病人09', risks: ['防逃跑'] },
+    { id: 10, name: '模擬病人10' }, { id: 11, name: '模擬病人11' }, { id: 12, name: '模擬病人12' },
+    { id: 13, name: '模擬病人13' }, { id: 14, name: '模擬病人14' }, { id: 15, name: '模擬病人15' },
+    { id: 16, name: '' }, { id: 17, name: '' }, { id: 18, name: '模擬病人18' }
+  ];
+
+  const PRECAUTIONS = [
+    '防暴力', '防藏藥', '防過度飲水',
+    '防自殺', '防逃跑', '防不適切',
+    '防跌倒', '防哽噎', '保護室'
+  ];
+
+  const LOCATIONS = [
+    { label: '如廁中', icon: '🚽', away: false },
+    { label: '保護室', icon: '🪟', away: false },
+    { label: '會談中', icon: '🗣️', away: false },
+    { label: '大廳中', icon: '📺', away: false },
+    { label: '房間中', icon: '📖', away: false },
+    { label: '睡眠中', icon: '😴', away: false },
+    { label: '8樓中', icon: '🤸', away: true },
+    { label: '檢查中', icon: '🩺', away: true },
+    { label: '會客中', icon: '👨‍👩‍👧', away: false },
+    { label: '出院、轉床', icon: '🏥', away: true },
+    { label: '外出中', icon: '📋', away: true },
+    { label: '外宿中', icon: '🏠', away: true }
+  ];
+
+  let state = {
+    staff: '護理師',
+    staffList: [...DEFAULT_STAFF_LIST],
+    lockedWard: null,
+    adminPin: '1234',
+    lastProcessedSlotKey: null,
+    wards: {},
+    logs: []
+  };
+
+  let activeWard = '3A';
+  let activeGroupIndex = 0;
+  let activeBedId = null;
+  let batchMode = false;
+  let selectedBatchIds = new Set();
+
+  // ================= 15分鐘黃金期限核心計算（整點~15分、半點~45分） =================
+  function getSlotAndDeadlineInfo(dateObj = new Date()) {
+    const y = dateObj.getFullYear();
+    const m = (dateObj.getMonth() + 1).toString().padStart(2, '0');
+    const d = dateObj.getDate().toString().padStart(2, '0');
+    const hh = dateObj.getHours();
+    const mm = dateObj.getMinutes();
+    const ss = dateObj.getSeconds();
+
+    const isFirstHalf = mm < 30;
+    const startH = hh.toString().padStart(2, '0');
+    const startM = isFirstHalf ? '00' : '30';
+    const deadlineM = isFirstHalf ? '15' : '45';
+    const endH = isFirstHalf ? startH : ((hh + 1) % 24).toString().padStart(2, '0');
+    const endM = isFirstHalf ? '30' : '00';
+
+    const roundTitle = `${startH}:${startM}`;
+    const deadlineTitle = `${startH}:${deadlineM}`;
+    const key = `${y}-${m}-${d} ${startH}:${startM}~${endH}:${endM}`;
+
+    // 計算距離15分鐘截止點還剩幾秒（若為負數代表已超過15分鐘期限）
+    const minuteInHalf = isFirstHalf ? mm : (mm - 30);
+    const secsToDeadline = (14 - minuteInHalf) * 60 + (59 - ss);
+    const isLateNow = minuteInHalf >= 15;
+
+    // 距離下一輪整點/半點還剩幾秒
+    const secsToNextRound = (29 - minuteInHalf) * 60 + (59 - ss);
+
+    return {
+      key,
+      roundTitle,
+      deadlineTitle,
+      isLateNow,
+      secsToDeadline,
+      secsToNextRound
+    };
+  }
+
+  function formatBedCode(wardName, num) {
+    return `${wardName}-${num.toString().padStart(2, '0')}`;
+  }
+
+  function createWardObject(wardName, capacity = 66, customStaffList = null) {
+    const beds = [];
+    for (let i = 1; i <= capacity; i++) {
+      const sample = (wardName === '3A') ? SAMPLE_3A.find(s => s.id === i) : null;
+      beds.push({
+        id: i,
+        code: formatBedCode(wardName, i),
+        name: sample ? sample.name : '',
+        risks: sample && sample.risks ? [...sample.risks] : [],
+        lastLocation: '',
+        lastCheckTime: null,
+        lastCheckedSlotKey: null,
+        lastCheckIsLate: false
+      });
+    }
+    const staffArr = Array.isArray(customStaffList) && customStaffList.length > 0
+      ? [...customStaffList]
+      : [...DEFAULT_STAFF_LIST];
+    let inferredCategory = activeWardCategory || 'acute';
+    if (ICU_WARD_NAMES.includes(wardName)) inferredCategory = 'icu';
+    else if (CHRONIC_WARD_NAMES.includes(wardName)) inferredCategory = 'chronic';
+    else if (ACUTE_WARD_NAMES.includes(wardName)) inferredCategory = 'acute';
+
+    return {
+      category: inferredCategory,
+      capacity: capacity,
+      staff: staffArr[0],
+      staffList: staffArr,
+      groups: JSON.parse(JSON.stringify(DEFAULT_GROUPS_TEMPLATE)),
+      beds: beds
+    };
+  }
+
+  function init() {
+    const saved = localStorage.getItem('ward_15min_rule_v8_public_demo');
+    if (saved) {
+      state = JSON.parse(saved);
+      if (!state.staffList) state.staffList = [...DEFAULT_STAFF_LIST];
+      if (!state.adminPin) state.adminPin = '1234';
+      Object.keys(state.wards || {}).forEach(w => {
+        if (!state.wards[w].category) {
+          if (ICU_WARD_NAMES.includes(w)) state.wards[w].category = 'icu';
+          else if (CHRONIC_WARD_NAMES.includes(w)) state.wards[w].category = 'chronic';
+          else state.wards[w].category = 'acute';
+        }
+      });
+    } else {
+      DEFAULT_WARD_NAMES.forEach(w => {
+        state.wards[w] = createWardObject(w, 66);
+      });
+      state.lastProcessedSlotKey = getSlotAndDeadlineInfo().key;
+      saveState();
+    }
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const paramWard = urlParams.get('ward');
+    if (paramWard && state.wards[paramWard.toUpperCase()]) {
+      state.lockedWard = paramWard.toUpperCase();
+    }
+
+    checkSlotTransition();
+    syncStaffDisplay();
+    updateSlotBannerUI();
+
+    if (state.lockedWard && state.wards[state.lockedWard]) {
+      activeWard = state.lockedWard;
+      activeWardCategory = state.wards[activeWard].category || 'acute';
+      goToView('groups');
+    } else {
+      goToView('home');
+    }
+
+    setInterval(() => {
+      const transitioned = checkSlotTransition();
+      updateSlotBannerUI();
+      updateDetailClock();
+      if (transitioned) {
+        if (document.getElementById('view-home').style.display === 'block') renderHomeView();
+        if (document.getElementById('view-wards').style.display === 'block') renderWardsView();
+        if (document.getElementById('view-groups').style.display === 'block') renderGroupsView();
+        if (document.getElementById('view-roster').style.display === 'block') renderRosterView();
+      }
+    }, 1000);
+  }
+
+  function checkSlotTransition() {
+    const currentSlot = getSlotAndDeadlineInfo();
+    if (!state.lastProcessedSlotKey) {
+      state.lastProcessedSlotKey = currentSlot.key;
+      saveState();
+      return false;
+    }
+    if (state.lastProcessedSlotKey !== currentSlot.key) {
+      const prevSlotKey = state.lastProcessedSlotKey;
+      Object.keys(state.wards).forEach(w => {
+        state.wards[w].beds.forEach(b => {
+          if (!b.name || b.name.trim() === '') return;
+          if (b.lastCheckedSlotKey !== prevSlotKey) {
+            const matchedGrp = state.wards[w].groups.find(g => g.start > 0 && b.id >= g.start && b.id <= g.end);
+            const prevLocNote = b.lastLocation ? `未查房（前次：${b.lastLocation}）` : '未查房';
+            state.logs.push({
+              ward: w,
+              groupName: matchedGrp ? matchedGrp.name : '',
+              slot: prevSlotKey,
+              timeliness: '❌ 該輪完全未查',
+              time: '輪次結束自動結算',
+              bedCode: b.code,
+              name: b.name,
+              location: prevLocNote,
+              risks: (b.risks || []).join('、') || '無',
+              staff: '系統稽核'
+            });
+          }
+        });
+      });
+      state.lastProcessedSlotKey = currentSlot.key;
+      saveState();
+      return true;
+    }
+    return false;
+  }
+
+  function updateSlotBannerUI() {
+    const info = getSlotAndDeadlineInfo();
+    const banners = document.querySelectorAll('.js-slot-banner');
+    const msgs = document.querySelectorAll('.js-slot-msg');
+    const timers = document.querySelectorAll('.js-slot-timer');
+
+    if (!info.isLateNow) {
+      // 00~14分 或 30~44分（正常查房期限內）
+      const mins = Math.floor(info.secsToDeadline / 60).toString().padStart(2, '0');
+      const secs = (info.secsToDeadline % 60).toString().padStart(2, '0');
+      const isUrgent = info.secsToDeadline <= 180; // 最後3分鐘橘色警示
+
+      msgs.forEach(el => el.textContent = `${isUrgent ? '🟠' : '🟢'} ${info.roundTitle}輪次（${info.deadlineTitle}前正常）`);
+      timers.forEach(el => el.textContent = `期限剩 ${mins}:${secs}`);
+      banners.forEach(el => {
+        el.classList.remove('expired');
+        el.classList.toggle('warning', isUrgent);
+      });
+    } else {
+      // 15~29分 或 45~59分（已超過15分鐘期限，屬異常）
+      const nextMins = Math.floor(info.secsToNextRound / 60).toString().padStart(2, '0');
+      const nextSecs = (info.secsToNextRound % 60).toString().padStart(2, '0');
+
+      msgs.forEach(el => el.textContent = `🚨 已逾${info.deadlineTitle}期限！補查記為異常`);
+      timers.forEach(el => el.textContent = `下輪 ${nextMins}:${nextSecs}`);
+      banners.forEach(el => {
+        el.classList.remove('warning');
+        el.classList.add('expired');
+      });
+    }
+  }
+
+  function saveState() {
+    localStorage.setItem('ward_15min_rule_v8_public_demo', JSON.stringify(state));
+  }
+
+
+  function ensureWardStaff(wardObj) {
+    if (!wardObj.staffList || !Array.isArray(wardObj.staffList) || wardObj.staffList.length === 0) {
+      wardObj.staffList = ['護理師'];
+    }
+    if (!wardObj.staff) wardObj.staff = wardObj.staffList[0] || '護理師';
+  }
+
+  function getCurrentWardStaff() {
+    const wObj = state.wards[activeWard];
+    if (!wObj) return state.staff;
+    ensureWardStaff(wObj);
+    return wObj.staff;
+  }
+
+  function setCurrentWardStaff(name) {
+    const wObj = state.wards[activeWard];
+    if (!wObj) {
+      state.staff = name;
+      return;
+    }
+    ensureWardStaff(wObj);
+    wObj.staff = name;
+    state.staff = name;
+  }
+
+  function getCurrentWardStaffList() {
+    const wObj = state.wards[activeWard];
+    if (!wObj) return state.staffList;
+    ensureWardStaff(wObj);
+    return wObj.staffList;
+  }
+
+  function syncStaffDisplay() {
+    const currentName = getCurrentWardStaff();
+    document.querySelectorAll('.js-staff-name').forEach(el => {
+      el.textContent = currentName;
+    });
+  }
+
+  // 管理者 PIN 碼驗證 helper
+  function verifyAdminPin(actionTitle) {
+    const inputPin = prompt(`🔒 執行「${actionTitle}」需輸入護理長／督導 PIN 碼：`);
+    if (inputPin === null) return false;
+    if (inputPin === state.adminPin) return true;
+    alert('❌ PIN 碼錯誤，無權限執行此操作！');
+    return false;
+  }
+
+  // ================= 病房鎖定與督導/護理長PIN碼解鎖 =================
+  function toggleWardLock() {
+    if (state.lockedWard) {
+      if (verifyAdminPin(`解鎖 ${state.lockedWard} 專用機`)) {
+        state.lockedWard = null;
+        saveState();
+        alert('✅ 已解鎖為「督導／護理長跨病房模式」，現在可自由切換全院病房！');
+        renderGroupsView();
+      }
+    } else {
+      if (confirm(`確定要將此設備鎖定為「${activeWard}病房」專用嗎？\n\n鎖定後：\n• 一般同仁打開將直接進入 ${activeWard}，無法點選其他病房\n• 督導／護理長輸入 PIN 碼即可隨時解鎖`)) {
+        state.lockedWard = activeWard;
+        saveState();
+        renderGroupsView();
+      }
+    }
+  }
+
+  function changeAdminPin() {
+    if (!verifyAdminPin('修改管理 PIN 碼')) return;
+    const newPin = prompt('請設定新的 4 位數管理 PIN 碼：');
+    if (newPin && newPin.trim().length >= 4) {
+      state.adminPin = newPin.trim();
+      saveState();
+      alert(`✅ 管理 PIN 碼已更新為：${state.adminPin}`);
+    } else if (newPin !== null) {
+      alert('PIN 碼至少需要 4 碼！');
+    }
+  }
+
+  // ================= 查房人員快速切換彈窗 =================
+  function openStaffModal() {
+    const grid = document.getElementById('staff-grid');
+    grid.innerHTML = '';
+    const wStaffList = getCurrentWardStaffList();
+    const curStaff = getCurrentWardStaff();
+    wStaffList.forEach(name => {
+      const btn = document.createElement('button');
+      btn.className = 'staff-choice-btn' + (name === curStaff ? ' active' : '');
+      btn.textContent = name;
+      btn.onclick = () => {
+        setCurrentWardStaff(name);
+        syncStaffDisplay();
+        saveState();
+        closeStaffModal();
+      };
+      grid.appendChild(btn);
+    });
+    document.getElementById('new-staff-input').value = '';
+    document.getElementById('staff-modal').style.display = 'flex';
+  }
+
+  function closeStaffModal() {
+    document.getElementById('staff-modal').style.display = 'none';
+  }
+
+  function addAndSelectStaff() {
+    const val = document.getElementById('new-staff-input').value.trim();
+    if (!val) {
+      alert('請輸入護理人員姓名！');
+      return;
+    }
+    const wStaffList = getCurrentWardStaffList();
+    if (!wStaffList.includes(val)) {
+      wStaffList.push(val);
+    }
+    setCurrentWardStaff(val);
+    syncStaffDisplay();
+    saveState();
+    closeStaffModal();
+  }
+
+  function editStaffListBulk() {
+    const wStaffList = getCurrentWardStaffList();
+    const currentStr = wStaffList.join('、');
+    const updated = prompt(`請編輯「${activeWard}病房」護理人員清單（用頓號「、」或逗號分隔）：`, currentStr);
+    if (updated !== null && updated.trim()) {
+      const arr = updated.split(/[、,，\s\n]+/).map(s => s.trim()).filter(s => s !== '');
+      if (arr.length > 0) {
+        const wObj = state.wards[activeWard];
+        if (wObj) {
+          wObj.staffList = [...new Set(arr)];
+          if (!wObj.staffList.includes(wObj.staff)) {
+            wObj.staff = wObj.staffList[0];
+          }
+        }
+        syncStaffDisplay();
+        saveState();
+        openStaffModal();
+      }
+    }
+  }
+
+  // 判定床位狀態：empty / late(本時段逾時補查) / checked(本時段15分內準時) / away(外出/8樓等) / overdue(尚未查)
+  function getBedStatus(bed) {
+    if (!bed.name || bed.name.trim() === '') return 'empty';
+
+    const currentSlotKey = getSlotAndDeadlineInfo().key;
+    if (bed.lastCheckedSlotKey === currentSlotKey) {
+      if (bed.lastCheckIsLate) return 'late';
+      return 'checked';
+    }
+
+    return 'overdue';
+  }
+
+  function formatTime(ts) {
+    if (!ts) return '尚未查房';
+    const d = new Date(ts);
+    return d.getHours().toString().padStart(2, '0') + ':' + d.getMinutes().toString().padStart(2, '0');
+  }
+
+  function goToView(viewName) {
+    if (viewName === 'wards' && state.lockedWard) {
+      activeWard = state.lockedWard;
+      activeWardCategory = state.wards[activeWard].category || activeWardCategory;
+      viewName = 'groups';
+    }
+
+    document.getElementById('view-home').style.display = viewName === 'home' ? 'block' : 'none';
+    document.getElementById('view-wards').style.display = viewName === 'wards' ? 'block' : 'none';
+    document.getElementById('view-groups').style.display = viewName === 'groups' ? 'block' : 'none';
+    document.getElementById('view-roster').style.display = viewName === 'roster' ? 'block' : 'none';
+    document.getElementById('view-detail').style.display = viewName === 'detail' ? 'block' : 'none';
+    window.scrollTo(0, 0);
+
+    syncStaffDisplay();
+    if (viewName === 'home') renderHomeView();
+    if (viewName === 'wards') renderWardsView();
+    if (viewName === 'groups') renderGroupsView();
+    if (viewName === 'roster') renderRosterView();
+  }
+
+  function getWardsInCategory(catKey) {
+    return Object.keys(state.wards).filter(w => {
+      const cat = state.wards[w].category || (
+        ICU_WARD_NAMES.includes(w) ? 'icu' :
+        CHRONIC_WARD_NAMES.includes(w) ? 'chronic' : 'acute'
+      );
+      return cat === catKey;
+    });
+  }
+
+  function renderHomeView() {
+    ['acute', 'icu', 'chronic'].forEach(catKey => {
+      const subEl = document.getElementById(`home-sub-${catKey}`);
+      if (!subEl) return;
+      const wardList = getWardsInCategory(catKey);
+      subEl.textContent = wardList.length > 0 ? wardList.join('、') : '尚無病房';
+    });
+  }
+
+  function selectWardCategory(catKey) {
+    activeWardCategory = catKey;
+    const list = getWardsInCategory(catKey);
+    if (list.length > 0 && !list.includes(activeWard)) {
+      activeWard = list[0];
+    }
+    goToView('wards');
+  }
+
+
+  function getTargetWardsForRiskSummary() {
+    if (state.lockedWard && state.wards[state.lockedWard]) {
+      return [state.lockedWard];
+    }
+    return getWardsInCategory(activeWardCategory);
+  }
+
+  function collectPatientsByRisk(riskName, filterWard = null, filterGroupIdx = null) {
+    const wardKeys = filterWard ? [filterWard] : getTargetWardsForRiskSummary();
+    const matched = [];
+    wardKeys.forEach(w => {
+      const wardObj = state.wards[w];
+      if (!wardObj || !Array.isArray(wardObj.beds)) return;
+
+      let targetBeds = wardObj.beds;
+      let grpLabel = '';
+      if (filterGroupIdx !== null && wardObj.groups && wardObj.groups[filterGroupIdx]) {
+        const grp = wardObj.groups[filterGroupIdx];
+        if (!grp.start || !grp.end || grp.start <= 0 || grp.end <= 0 || grp.start > grp.end) {
+          targetBeds = [];
+        } else {
+          const actualEnd = Math.min(grp.end, wardObj.capacity);
+          targetBeds = wardObj.beds.filter(b => b.id >= grp.start && b.id <= actualEnd);
+          grpLabel = grp.name;
+        }
+      } else if (wardObj.groups) {
+        // Attach group name if available
+      }
+
+      targetBeds.forEach(b => {
+        if (!b.name || b.name.trim() === '') return;
+        if (Array.isArray(b.risks) && b.risks.includes(riskName)) {
+          const matchedGrp = wardObj.groups ? wardObj.groups.find(g => g.start > 0 && b.id >= g.start && b.id <= Math.min(g.end, wardObj.capacity)) : null;
+          matched.push({
+            ward: w,
+            groupName: grpLabel || (matchedGrp ? matchedGrp.name : ''),
+            bedId: b.id,
+            bedCode: b.code,
+            name: b.name,
+            lastLocation: b.lastLocation || '待確認',
+            risks: [...b.risks]
+          });
+        }
+      });
+    });
+    return matched;
+  }
+
+  function renderRosterRiskSummary() {
+    const chipsContainer = document.getElementById('roster-risk-chips');
+    const scopeLabel = document.getElementById('roster-risk-scope-label');
+    if (!chipsContainer) return;
+
+    const wardObj = state.wards[activeWard];
+    const grp = (wardObj && wardObj.groups) ? wardObj.groups[activeGroupIndex] : null;
+    if (scopeLabel) {
+      scopeLabel.textContent = grp ? `${activeWard} ${grp.name}` : `${activeWard}病房`;
+    }
+
+    chipsContainer.innerHTML = '';
+    PRECAUTIONS.forEach(riskName => {
+      const patients = collectPatientsByRisk(riskName, activeWard, activeGroupIndex);
+      const count = patients.length;
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'risk-stat-btn' + (count > 0 ? ' has-patients' : '');
+      btn.innerHTML = `<span>${riskName}</span><span class="risk-count-badge">${count}人</span>`;
+      btn.onclick = () => openRiskPatientsModal(riskName, patients, grp ? `${activeWard} ${grp.name}` : `${activeWard}病房`);
+      chipsContainer.appendChild(btn);
+    });
+  }
+
+  function renderWardsRiskSummary() {
+    const chipsContainer = document.getElementById('wards-risk-chips');
+    const scopeLabel = document.getElementById('wards-risk-scope-label');
+    if (!chipsContainer) return;
+
+    const wardKeys = getTargetWardsForRiskSummary();
+    if (scopeLabel) {
+      const catLabel = (CATEGORY_META[activeWardCategory] && CATEGORY_META[activeWardCategory].label) || '病房';
+      scopeLabel.textContent = (state.lockedWard && state.wards[state.lockedWard])
+        ? `${state.lockedWard}病房`
+        : `${catLabel}在院`;
+    }
+
+    chipsContainer.innerHTML = '';
+    PRECAUTIONS.forEach(riskName => {
+      const patients = collectPatientsByRisk(riskName);
+      const count = patients.length;
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'risk-stat-btn' + (count > 0 ? ' has-patients' : '');
+      btn.innerHTML = `<span>${riskName}</span><span class="risk-count-badge">${count}人</span>`;
+      btn.onclick = () => openRiskPatientsModal(riskName, patients);
+      chipsContainer.appendChild(btn);
+    });
+  }
+
+  function openRiskPatientsModal(riskName, patientsList = null, scopeText = null) {
+    const list = Array.isArray(patientsList) ? patientsList : collectPatientsByRisk(riskName);
+    const titleEl = document.getElementById('risk-modal-title');
+    const listEl = document.getElementById('risk-modal-list');
+    const suffix = scopeText ? ` · ${scopeText}` : '';
+    titleEl.textContent = `🚨 ${riskName}${suffix}（共 ${list.length} 人）`;
+    listEl.innerHTML = '';
+
+    if (list.length === 0) {
+      listEl.innerHTML = `<div style="padding:16px; text-align:center; color:#607d8b; background:#f4f5f7; border-radius:8px;">目前尚無設定「${riskName}」的在院病人。</div>`;
+    } else {
+      list.forEach(item => {
+        const row = document.createElement('div');
+        row.className = 'risk-patient-item';
+        const otherRisks = item.risks.filter(r => r !== riskName);
+        const otherHtml = otherRisks.length > 0
+          ? `<div style="font-size:0.74rem; color:#c62828; margin-top:2px;">其他防範：${otherRisks.join('、')}</div>`
+          : '';
+        row.innerHTML = `
+          <div>
+            <div style="font-weight:bold; font-size:0.98rem; color:#212121;">${item.bedCode} ${item.name}</div>
+            <div style="font-size:0.78rem; color:#455a64;">去向：${item.lastLocation}</div>
+            ${otherHtml}
+          </div>
+          <span style="font-size:0.82rem; font-weight:bold; color:#1565c0;">前往查房 ›</span>
+        `;
+        row.onclick = () => {
+          closeRiskPatientsModal();
+          activeWard = item.ward;
+          openDetail(item.bedId);
+        };
+        listEl.appendChild(row);
+      });
+    }
+
+    document.getElementById('risk-patients-modal').style.display = 'flex';
+  }
+
+  function closeRiskPatientsModal() {
+    document.getElementById('risk-patients-modal').style.display = 'none';
+  }
+
+  // ================= 第一層：病房清單 =================
+  function renderWardsView() {
+    const titleEl = document.getElementById('wards-category-title');
+    const catLabel = (CATEGORY_META[activeWardCategory] && CATEGORY_META[activeWardCategory].label) || '';
+    if (titleEl) {
+      titleEl.textContent = `${catLabel}護理站查房清單`;
+    }
+
+    const container = document.getElementById('ward-buttons-container');
+    container.innerHTML = '';
+    getWardsInCategory(activeWardCategory).forEach(w => {
+      const wardObj = state.wards[w];
+      let occupied = 0, overdue = 0;
+      wardObj.beds.forEach(b => {
+        const st = getBedStatus(b);
+        if (st !== 'empty') {
+          occupied++;
+          if (st === 'overdue') overdue++;
+        }
+      });
+
+      const btn = document.createElement('button');
+      btn.className = 'ward-list-btn';
+      btn.innerHTML = `
+        ${overdue > 0 ? `<span class="ward-alert-dot">🔴 ${overdue}待查</span>` : ''}
+        <span>${w}</span>
+        <span class="ward-badge-count">在院 ${occupied} 床</span>
+      `;
+      btn.onclick = () => {
+        activeWard = w;
+        goToView('groups');
+      };
+      container.appendChild(btn);
+    });
+    renderWardsRiskSummary();
+  }
+
+  function openDeleteWardPrompt() {
+    const customWards = getWardsInCategory(activeWardCategory).filter(w => !DEFAULT_WARD_NAMES.includes(w));
+    if (customWards.length === 0) {
+      alert('目前沒有可刪除的新建病房（預設病房無法刪除）。');
+      return;
+    }
+    const chosen = prompt(`請輸入要刪除的新建病房代號（可刪除：${customWards.join('、')}）：`);
+    if (!chosen || !chosen.trim()) return;
+    const targetWard = chosen.trim().toUpperCase();
+    if (!state.wards[targetWard]) {
+      alert(`找不到「${targetWard}」病房！`);
+      return;
+    }
+    if (DEFAULT_WARD_NAMES.includes(targetWard)) {
+      alert('預設病房無法直接刪除！');
+      return;
+    }
+    if (!verifyAdminPin(`刪除 ${targetWard} 病房`)) return;
+    if (!confirm(`⚠️ 確定要刪除新建的「${targetWard}病房」嗎？\n\n刪除後會移除此病房設定與名冊（既有歷史查房紀錄仍會保留在匯出報表中）。`)) {
+      return;
+    }
+    delete state.wards[targetWard];
+    if (state.lockedWard === targetWard) {
+      state.lockedWard = null;
+    }
+    const remainingWards = Object.keys(state.wards);
+    activeWard = remainingWards[0] || '3A';
+    saveState();
+    alert(`✅ 已刪除「${targetWard}病房」。`);
+    renderWardsView();
+  }
+
+  function addNewWard() {
+    if (!verifyAdminPin('新增病房')) return;
+    const name = prompt('請輸入新增病房代號（例如：8A、5C）：');
+    if (!name || !name.trim()) return;
+    const code = name.trim().toUpperCase();
+    if (state.wards[code]) {
+      alert('該病房已存在！');
+      return;
+    }
+    const capStr = prompt(`請輸入「${code}病房」總床數：`, '50');
+    const cap = Math.max(1, Math.min(120, parseInt(capStr, 10) || 50));
+    const newWardObj = createWardObject(code, cap, NEW_WARD_DEFAULT_STAFF_LIST);
+    newWardObj.category = activeWardCategory;
+    state.wards[code] = newWardObj;
+    autoDistributeGroups(state.wards[code]);
+    activeWard = code;
+    setCurrentWardStaff('護理師');
+    saveState();
+    renderWardsView();
+  }
+
+  // ================= 第二層：組別選擇 =================
+  function renderGroupsView() {
+    const wardObj = state.wards[activeWard];
+    document.getElementById('group-view-ward-title').textContent = `${activeWard}病房 分組`;
+
+    const backBtn = document.getElementById('btn-back-to-wards');
+    const statusText = document.getElementById('lock-status-text');
+    const lockBtn = document.getElementById('btn-lock-toggle');
+
+    if (state.lockedWard) {
+      backBtn.style.display = 'none';
+      statusText.innerHTML = `🔒 <strong>${state.lockedWard}專用機</strong>（已限制跨病房）`;
+      lockBtn.textContent = '🔑 督導／阿長解鎖';
+      lockBtn.className = 'btn-lock-toggle btn-lock-active';
+    } else {
+      backBtn.style.display = 'block';
+      statusText.innerHTML = `👑 <strong>督導／阿長自由模式</strong>`;
+      lockBtn.textContent = `🔒 鎖定本機為 ${activeWard} 專用`;
+      lockBtn.className = 'btn-lock-toggle btn-lock-open';
+    }
+
+    const container = document.getElementById('group-buttons-container');
+    container.innerHTML = '';
+
+    wardObj.groups.forEach((grp, idx) => {
+      if (!grp.start || !grp.end || grp.start <= 0 || grp.end <= 0 || grp.start > grp.end || grp.start > wardObj.capacity) return;
+      const actualEnd = Math.min(grp.end, wardObj.capacity);
+      const groupBeds = wardObj.beds.filter(b => b.id >= grp.start && b.id <= actualEnd);
+
+      let checked = 0, late = 0, overdue = 0;
+      groupBeds.forEach(b => {
+        const st = getBedStatus(b);
+        if (st === 'checked') checked++;
+        else if (st === 'late') late++;
+        else if (st === 'overdue') overdue++;
+      });
+
+      const startStr = grp.start.toString().padStart(2, '0');
+      const endStr = actualEnd.toString().padStart(2, '0');
+
+      const btn = document.createElement('button');
+      btn.className = 'group-card-btn';
+      btn.innerHTML = `
+        <div>${grp.name} (${startStr} ~ ${endStr} 床)</div>
+        <span class="group-sub-status">準時 ${checked} ｜ 逾時補查 ${late} ｜ 待查 ${overdue}</span>
+      `;
+      btn.onclick = () => {
+        activeGroupIndex = idx;
+        if (batchMode) toggleBatchMode();
+        goToView('roster');
+      };
+      container.appendChild(btn);
+    });
+    renderWardsRiskSummary();
+  }
+
+  function getActiveGroupBeds() {
+    const wardObj = state.wards[activeWard];
+    const grp = wardObj.groups[activeGroupIndex];
+    const actualEnd = Math.min(grp.end, wardObj.capacity);
+    return wardObj.beds.filter(b => b.id >= grp.start && b.id <= actualEnd);
+  }
+
+  // ================= 第三層：該組病人名冊 =================
+  function renderRosterView() {
+    const wardObj = state.wards[activeWard];
+    const grp = wardObj.groups[activeGroupIndex];
+    const actualEnd = Math.min(grp.end, wardObj.capacity);
+    document.getElementById('roster-group-title').textContent = `${activeWard} 名冊 (${grp.start}~${actualEnd}床)`;
+
+    const grid = document.getElementById('roster-grid');
+    grid.innerHTML = '';
+    const beds = getActiveGroupBeds();
+
+    let checkedCount = 0, lateCount = 0, overdueCount = 0, awayCount = 0;
+
+    beds.forEach(bed => {
+      const status = getBedStatus(bed);
+      if (status === 'checked') checkedCount++;
+      else if (status === 'late') lateCount++;
+      else if (status === 'overdue') overdueCount++;
+      else if (status === 'away') awayCount++;
+
+      const card = document.createElement('div');
+      card.className = `bed-card ${status}`;
+
+      const displayName = status === 'empty' ? '(空床)' : bed.name;
+      const timeStr = status === 'empty' ? '' : formatTime(bed.lastCheckTime);
+      const locStr = status === 'empty' ? '' : (bed.lastLocation || '待確認');
+
+      let risksHtml = '';
+      if (bed.risks && bed.risks.length > 0 && status !== 'empty') {
+        risksHtml = `<div class="risk-dots">` +
+          bed.risks.map(r => `<span class="risk-pill">${r}</span>`).join('') +
+          `</div>`;
+      }
+
+      let rightTopHtml = '';
+      if (batchMode && status !== 'empty') {
+        const isChecked = selectedBatchIds.has(bed.id) ? 'checked' : '';
+        rightTopHtml = `<input type="checkbox" class="batch-checkbox" ${isChecked} onclick="event.stopPropagation(); toggleSelectBed(${bed.id})">`;
+      } else if (status === 'empty') {
+        rightTopHtml = `<span style="color:#0277bd; font-size:0.75rem;">＋入住</span>`;
+      } else if (status === 'overdue') {
+        rightTopHtml = `<span style="color:#c62828; font-size:0.8rem;">🔴 待查</span>`;
+      } else if (status === 'late') {
+        rightTopHtml = `<span style="color:#e65100; font-size:0.78rem;">⚠️ 逾時</span>`;
+      } else if (status === 'checked') {
+        rightTopHtml = `<span style="color:#2e7d32; font-size:0.85rem;">✅</span>`;
+      }
+
+      card.innerHTML = `
+        <div class="bed-header">
+          <span>${bed.code} ${displayName}</span>
+          ${rightTopHtml}
+        </div>
+        ${risksHtml}
+        ${status !== 'empty' ? `
+          <div class="bed-meta">
+            <span class="loc-tag">${locStr}</span>
+            <span style="color:#555;">${timeStr}</span>
+          </div>
+        ` : `<div class="bed-meta"><span style="color:#888; font-size:0.72rem;">點擊辦理新病人入住</span></div>`}
+      `;
+
+      card.onclick = () => {
+        if (status === 'empty') {
+          if (batchMode) return;
+          admitNewPatient(bed.id);
+          return;
+        }
+        if (batchMode) toggleSelectBed(bed.id);
+        else openDetail(bed.id);
+      };
+
+      grid.appendChild(card);
+    });
+
+    document.getElementById('stat-checked').textContent = checkedCount;
+    document.getElementById('stat-late').textContent = lateCount;
+    document.getElementById('stat-overdue').textContent = overdueCount;
+    document.getElementById('stat-away').textContent = awayCount;
+    renderRosterRiskSummary();
+  }
+
+  function admitNewPatient(bedId) {
+    const bed = state.wards[activeWard].beds.find(b => b.id === bedId);
+    if (!bed) return;
+    const newName = prompt(`🏥 辦理新病人入住【${bed.code}】\n請輸入病人姓名（或代號）：`);
+    if (newName && newName.trim()) {
+      bed.name = newName.trim();
+      bed.risks = [];
+      bed.lastLocation = '房間中';
+      bed.lastCheckTime = null;
+      bed.lastCheckedSlotKey = null;
+      bed.lastCheckIsLate = false;
+      saveState();
+      openDetail(bedId);
+    }
+  }
+
+  function toggleBatchMode() {
+    batchMode = !batchMode;
+    selectedBatchIds.clear();
+    document.getElementById('btn-batch-toggle').classList.toggle('active', batchMode);
+    document.getElementById('batch-panel').classList.toggle('show', batchMode);
+    document.getElementById('batch-count').textContent = '0';
+    renderRosterView();
+  }
+
+  function toggleSelectBed(id) {
+    if (selectedBatchIds.has(id)) selectedBatchIds.delete(id);
+    else selectedBatchIds.add(id);
+    document.getElementById('batch-count').textContent = selectedBatchIds.size;
+    renderRosterView();
+  }
+
+  function selectAllOverdue() {
+    getActiveGroupBeds().forEach(b => {
+      if (getBedStatus(b) === 'overdue') selectedBatchIds.add(b.id);
+    });
+    document.getElementById('batch-count').textContent = selectedBatchIds.size;
+    renderRosterView();
+  }
+
+  function applyBatchLocation(locLabel) {
+    if (selectedBatchIds.size === 0) {
+      alert('請先勾選至少一位病人床位！');
+      return;
+    }
+    const slotInfo = getSlotAndDeadlineInfo();
+    const beds = state.wards[activeWard].beds;
+    const idsArr = Array.from(selectedBatchIds);
+
+    if (ESCAPE_WATCH_LOCATIONS.includes(locLabel)) {
+      const escapeBeds = beds.filter(b => idsArr.includes(b.id) && hasEscapeRisk(b));
+      if (escapeBeds.length > 0) {
+        pendingEscapeCheck = {
+          bedIds: idsArr,
+          locLabel: locLabel,
+          slotInfo: slotInfo,
+          isBatch: true
+        };
+        const namesStr = escapeBeds.map(b => `${b.code}${b.name}`).join('、');
+        document.getElementById('escape-alert-main-text').textContent =
+          `🚨 防逃跑病人警示（${locLabel}）`;
+        document.getElementById('escape-alert-detail-text').innerHTML =
+          `以下「防逃跑」病人勾選了「<strong>${locLabel}</strong>」：<br>${namesStr}<br>請確認已完成防逃安全檢核與交接／陪同！`;
+        document.getElementById('escape-alert-modal').style.display = 'flex';
+        return;
+      }
+    }
+
+    if (locLabel === '如廁中') {
+      const consecutiveBeds = beds.filter(b => idsArr.includes(b.id) && b.lastLocation === '如廁中');
+      if (consecutiveBeds.length > 0) {
+        pendingToiletCheck = {
+          bedIds: idsArr,
+          locLabel: locLabel,
+          slotInfo: slotInfo,
+          isBatch: true
+        };
+        const namesStr = consecutiveBeds.map(b => `${b.code}${b.name}`).join('、');
+        document.getElementById('toilet-alert-main-text').textContent =
+          `請確認廁所內病人是否有回應`;
+        document.getElementById('toilet-alert-detail-text').textContent =
+          `以下床位前次亦為「如廁中」：${namesStr}`;
+        document.getElementById('toilet-alert-modal').style.display = 'flex';
+        return;
+      }
+    }
+
+    if (slotInfo.isLateNow) {
+      if (!confirm(`⚠️ 目前已超過 ${slotInfo.deadlineTitle} 查房期限，批次登錄「${locLabel}」將標記為「逾時補查」，確定送出嗎？`)) {
+        return;
+      }
+    }
+
+    finalizeLocationUpdate(idsArr, locLabel, slotInfo, true);
+  }
+
+  // ================= 第四層：個人查房詳情頁 =================
+  function openDetail(bedId) {
+    const wardObj = state.wards[activeWard];
+    const bed = wardObj.beds.find(b => b.id === bedId);
+    if (!bed) return;
+    activeBedId = bedId;
+
+    goToView('detail');
+    document.getElementById('detail-patient-box').innerHTML = `${bed.code}<br>${bed.name || '(空床)'}`;
+    syncStaffDisplay();
+    const jumpInput = document.getElementById('jump-bed-input');
+    jumpInput.value = '';
+    jumpInput.max = wardObj.capacity;
+    updateDetailClock();
+
+    const pGrid = document.getElementById('precautions-grid');
+    pGrid.innerHTML = '';
+    PRECAUTIONS.forEach(item => {
+      const isChecked = bed.risks && bed.risks.includes(item) ? 'checked' : '';
+      const div = document.createElement('div');
+      div.className = 'toggle-item';
+      div.innerHTML = `
+        <span>${item}</span>
+        <label class="switch">
+          <input type="checkbox" ${isChecked} onchange="toggleRisk('${item}', this.checked)">
+          <span class="slider"></span>
+        </label>
+      `;
+      pGrid.appendChild(div);
+    });
+
+    const lGrid = document.getElementById('locations-grid');
+    lGrid.innerHTML = '';
+    LOCATIONS.forEach(loc => {
+      const btn = document.createElement('button');
+      btn.className = 'loc-btn' + (bed.lastLocation === loc.label ? ' selected-loc' : '');
+      btn.innerHTML = `
+        <div class="loc-emoji">${loc.icon}</div>
+        <div class="loc-text">${loc.label}</div>
+      `;
+      btn.onclick = () => selectLocationAndReturn(loc.label);
+      lGrid.appendChild(btn);
+    });
+  }
+
+  function updateDetailClock() {
+    const now = new Date();
+    const dateStr = `${now.getFullYear()}/${(now.getMonth()+1).toString().padStart(2,'0')}/${now.getDate().toString().padStart(2,'0')}`;
+    const timeStr = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
+    document.getElementById('live-date').textContent = dateStr;
+    document.getElementById('live-clock').textContent = `${timeStr} 查房人員：`;
+  }
+
+  function toggleRisk(riskName, checked) {
+    const bed = state.wards[activeWard].beds.find(b => b.id === activeBedId);
+    if (!bed) return;
+    if (!bed.risks) bed.risks = [];
+    if (checked && !bed.risks.includes(riskName)) bed.risks.push(riskName);
+    else if (!checked) bed.risks = bed.risks.filter(r => r !== riskName);
+    saveState();
+  }
+
+  let pendingToiletCheck = null;
+
+  let pendingSeclusionData = null;
+
+  function openSeclusionStep1(bed, slotInfo, isBatch = false, bedIds = null) {
+    pendingSeclusionData = {
+      bed: bed,
+      bedIds: bedIds || [bed.id],
+      slotInfo: slotInfo,
+      isBatch: isBatch,
+      mode: null
+    };
+    document.getElementById('sec-step1-patient').textContent =
+      `【${bed.code} ${bed.name}】\n請選擇保護室處置項目`;
+    document.getElementById('seclusion-step1-modal').style.display = 'flex';
+  }
+
+  function openSeclusionStep2(mode) {
+    if (!pendingSeclusionData) return;
+    pendingSeclusionData.mode = mode;
+    document.getElementById('seclusion-step1-modal').style.display = 'none';
+
+    if (mode === 'isolation') {
+      document.getElementById('sec-step2-heading').textContent = '【隔離安全確認】';
+      document.getElementById('sec-step2-body').innerHTML =
+        '已確認病人精神狀態及<br>環境安全無虞。';
+    } else {
+      document.getElementById('sec-step2-heading').textContent = '【約束安全確認】';
+      document.getElementById('sec-step2-body').innerHTML =
+        '已確認：<br>1. 約束帶鬆緊度<br>2. 四肢末梢循環良好<br>3. 病人情緒狀態';
+    }
+    document.getElementById('seclusion-step2-modal').style.display = 'flex';
+  }
+
+  function backToSeclusionStep1() {
+    document.getElementById('seclusion-step2-modal').style.display = 'none';
+    document.getElementById('seclusion-step1-modal').style.display = 'flex';
+  }
+
+  function closeSeclusionModals() {
+    pendingSeclusionData = null;
+    document.getElementById('seclusion-step1-modal').style.display = 'none';
+    document.getElementById('seclusion-step2-modal').style.display = 'none';
+  }
+
+  function confirmSeclusionComplete() {
+    if (!pendingSeclusionData) return;
+    const { bedIds, slotInfo, isBatch, mode } = pendingSeclusionData;
+    const finalLabel = mode === 'isolation'
+      ? '保護室-隔離中（已確認精神與環境安全）'
+      : '保護室-約束中（已確認鬆緊/末梢循環/情緒）';
+    closeSeclusionModals();
+    finalizeLocationUpdate(bedIds, finalLabel, slotInfo, isBatch);
+  }
+
+  let pendingEscapeCheck = null;
+  const ESCAPE_WATCH_LOCATIONS = ['外出中', '外宿中', '檢查中', '8樓中', '會客中'];
+
+  function hasEscapeRisk(bed) {
+    return !!(bed && Array.isArray(bed.risks) && bed.risks.includes('防逃跑'));
+  }
+
+  function openEscapeAlertModal(bed, locLabel, slotInfo, isBatch = false, bedIds = null) {
+    pendingEscapeCheck = {
+      bedIds: bedIds || [bed.id],
+      locLabel: locLabel,
+      slotInfo: slotInfo,
+      isBatch: isBatch
+    };
+    document.getElementById('escape-alert-main-text').textContent =
+      `🚨 防逃跑病人警示：【${bed.code} ${bed.name}】`;
+    document.getElementById('escape-alert-detail-text').innerHTML =
+      `此病人已設定「<strong>防逃跑</strong>」，本次選擇去向為「<strong>${locLabel}</strong>」。<br>請確認已完成防逃安全檢核與交接／陪同！`;
+    document.getElementById('escape-alert-modal').style.display = 'flex';
+  }
+
+  function closeEscapeAlertModal() {
+    pendingEscapeCheck = null;
+    document.getElementById('escape-alert-modal').style.display = 'none';
+  }
+
+  function confirmEscapeAlert() {
+    if (!pendingEscapeCheck) return;
+    const { bedIds, locLabel, slotInfo, isBatch } = pendingEscapeCheck;
+    closeEscapeAlertModal();
+    finalizeLocationUpdate(bedIds, `${locLabel}（🚨防逃跑已確認）`, slotInfo, isBatch);
+  }
+
+  function selectLocationAndReturn(locLabel) {
+    const bed = state.wards[activeWard].beds.find(b => b.id === activeBedId);
+    if (!bed) return;
+    const slotInfo = getSlotAndDeadlineInfo();
+
+    // 點選「出院、轉床」時：先寫入原病人出院/轉床紀錄，再清空床位並跳出輸入新病人視窗
+    if (locLabel === '出院、轉床') {
+      recordLog(bed, '出院、轉床（已清空床位待新病人入住）', slotInfo);
+      bed.name = '';
+      bed.risks = [];
+      bed.lastLocation = '';
+      bed.lastCheckTime = null;
+      bed.lastCheckedSlotKey = null;
+      bed.lastCheckIsLate = false;
+      saveState();
+      goToView('roster');
+
+      setTimeout(() => {
+        const newName = prompt(`🏥 辦理新病人入住【${bed.code}】\n請輸入病人姓名（或代號）：`);
+        if (newName && newName.trim()) {
+          bed.name = newName.trim();
+          bed.risks = [];
+          bed.lastLocation = '房間中';
+          bed.lastCheckTime = null;
+          bed.lastCheckedSlotKey = null;
+          bed.lastCheckIsLate = false;
+          saveState();
+          openDetail(bed.id);
+        } else {
+          renderRosterView();
+        }
+      }, 120);
+      return;
+    }
+
+    // 若為「防逃跑」病人且選擇 外出中/外宿中/檢查中/8樓中/會客中，立即跳出防逃警示
+    if (hasEscapeRisk(bed) && ESCAPE_WATCH_LOCATIONS.includes(locLabel)) {
+      openEscapeAlertModal(bed, locLabel, slotInfo, false, [bed.id]);
+      return;
+    }
+
+    // 點選「保護室」時，立即跳出處置項目與安全確認警示流程
+    if (locLabel === '保護室') {
+      openSeclusionStep1(bed, slotInfo, false, [bed.id]);
+      return;
+    }
+
+    // 若前一次查房也是「如廁中」，且本次仍選「如廁中」，立即跳出警示確認
+    if (locLabel === '如廁中' && bed.lastLocation === '如廁中') {
+      pendingToiletCheck = {
+        bedIds: [bed.id],
+        locLabel: locLabel,
+        slotInfo: slotInfo,
+        isBatch: false
+      };
+      openToiletAlertModal(bed);
+      return;
+    }
+
+    finalizeLocationUpdate([bed.id], locLabel, slotInfo, '', false);
+  }
+
+  function openToiletAlertModal(bed) {
+    const risksText = (bed.risks && bed.risks.length > 0) ? `\n高風險註記：${bed.risks.join('、')}` : '';
+    document.getElementById('toilet-alert-main-text').textContent =
+      `【${bed.code} ${bed.name}】\n請確認廁所內病人是否有回應`;
+    document.getElementById('toilet-alert-detail-text').textContent =
+      `前次查房已為「如廁中」，本次仍為「如廁中」。${risksText}`;
+    document.getElementById('toilet-alert-modal').style.display = 'flex';
+  }
+
+  function confirmToiletResponse(hasResponse) {
+    document.getElementById('toilet-alert-modal').style.display = 'none';
+    if (!pendingToiletCheck) return;
+
+    const { bedIds, locLabel, slotInfo, isBatch } = pendingToiletCheck;
+    pendingToiletCheck = null;
+
+    if (!hasResponse) {
+      alert('🚨 警示：病人「無回應」！請立即前往廁所確認病人安全、敲門呼喚並啟動緊急照護應變！');
+    }
+
+    const noteSuffix = hasResponse ? '（連續如廁-有回應）' : '（🚨連續如廁-無回應警示）';
+    finalizeLocationUpdate(bedIds, locLabel + noteSuffix, slotInfo, isBatch);
+  }
+
+  function finalizeLocationUpdate(bedIds, finalLocLabel, slotInfo, isBatch) {
+    const now = Date.now();
+    const beds = state.wards[activeWard].beds;
+    // 儲存純去向標籤供下次比對是否連續如廁
+    const pureLoc = finalLocLabel.startsWith('保護室') ? '保護室' : finalLocLabel.replace(/（.*）$/, '');
+
+    bedIds.forEach(id => {
+      const bed = beds.find(b => b.id === id);
+      if (bed) {
+        bed.lastLocation = pureLoc;
+        bed.lastCheckTime = now;
+        bed.lastCheckedSlotKey = slotInfo.key;
+        bed.lastCheckIsLate = slotInfo.isLateNow;
+        recordLog(bed, finalLocLabel, slotInfo);
+      }
+    });
+
+    saveState();
+    if (isBatch) {
+      toggleBatchMode();
+    } else {
+      goToView('roster');
+    }
+  }
+
+  function jumpToBed() {
+    const maxBed = state.wards[activeWard].capacity;
+    const num = parseInt(document.getElementById('jump-bed-input').value, 10);
+    if (num >= 1 && num <= maxBed) openDetail(num);
+    else alert(`請輸入 1 到 ${maxBed} 之間的床號`);
+  }
+
+  function recordLog(bed, locLabel, slotInfo) {
+    const now = new Date();
+    const timestamp = `${now.getFullYear()}-${(now.getMonth()+1).toString().padStart(2,'0')}-${now.getDate().toString().padStart(2,'0')} ${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}:${now.getSeconds().toString().padStart(2,'0')}`;
+    const timelinessText = slotInfo.isLateNow ? '⚠️ 逾時補查（超過15分期限）' : '✅ 準時完成（15分內）';
+    const wardObj = state.wards[activeWard];
+    const matchedGrp = wardObj ? wardObj.groups.find(g => g.start > 0 && bed.id >= g.start && bed.id <= g.end) : null;
+    state.logs.push({
+      ward: activeWard,
+      groupName: matchedGrp ? matchedGrp.name : '',
+      slot: slotInfo.key,
+      timeliness: timelinessText,
+      time: timestamp,
+      bedCode: bed.code,
+      name: bed.name,
+      location: locLabel,
+      risks: (bed.risks || []).join('、') || '無',
+      staff: getCurrentWardStaff()
+    });
+  }
+
+  function startNewGroupRound() {
+    if (!verifyAdminPin('手動重置本組查房狀態')) return;
+    getActiveGroupBeds().forEach(b => {
+      if (!b.name || b.name.trim() === '') return;
+      b.lastCheckTime = null;
+      b.lastCheckedSlotKey = null;
+      b.lastCheckIsLate = false;
+    });
+    saveState();
+    renderRosterView();
+  }
+
+  // ================= 設定總床數與分組區間（受 PIN 碼保護） =================
+  function openGroupConfigModal() {
+    const wardObj = state.wards[activeWard];
+    document.getElementById('config-modal-title').textContent = `⚙️ 設定 ${activeWard}病房 總床數與分組區間`;
+    document.getElementById('cfg-total-beds').value = wardObj.capacity;
+    renderConfigGroupsInputs(wardObj.groups);
+    document.getElementById('group-config-modal').style.display = 'flex';
+  }
+
+  function renderConfigGroupsInputs(groups) {
+    const list = document.getElementById('cfg-groups-list');
+    list.innerHTML = '';
+    groups.forEach((g, i) => {
+      const startVal = (g.start && g.start > 0) ? g.start : '';
+      const endVal = (g.end && g.end > 0) ? g.end : '';
+      list.innerHTML += `
+        <div style="display:flex; align-items:center; gap:6px; margin-bottom:8px;">
+          <input type="text" id="cfg-gname-${i}" value="${g.name}" style="width:72px; padding:6px; border:1px solid #ccc; border-radius:6px; font-weight:bold;">
+          <span>：第</span>
+          <input type="number" id="cfg-gstart-${i}" value="${startVal}" placeholder="留白隱藏" min="0" max="120" style="width:74px; padding:6px; border:1px solid #ccc; border-radius:6px;">
+          <span>~</span>
+          <input type="number" id="cfg-gend-${i}" value="${endVal}" placeholder="留白隱藏" min="0" max="120" style="width:74px; padding:6px; border:1px solid #ccc; border-radius:6px;">
+          <span>床</span>
+        </div>
+      `;
+    });
+  }
+
+  function autoDistributeGroups(wardObj, customCap) {
+    const cap = customCap || wardObj.capacity;
+    const perGroup = Math.ceil(cap / 4);
+    wardObj.groups.forEach((g, idx) => {
+      g.start = idx * perGroup + 1;
+      g.end = Math.min(cap, (idx + 1) * perGroup);
+    });
+  }
+
+  function autoSplitGroups(numGroups = 4) {
+    const cap = Math.max(1, Math.min(120, parseInt(document.getElementById('cfg-total-beds').value, 10) || 30));
+    const tempGroups = JSON.parse(JSON.stringify(state.wards[activeWard].groups));
+    const perGroup = Math.ceil(cap / numGroups);
+    tempGroups.forEach((g, idx) => {
+      if (idx < numGroups && idx * perGroup + 1 <= cap) {
+        g.start = idx * perGroup + 1;
+        g.end = Math.min(cap, (idx + 1) * perGroup);
+      } else {
+        g.start = 0;
+        g.end = 0;
+      }
+    });
+    renderConfigGroupsInputs(tempGroups);
+  }
+
+  function saveGroupConfig() {
+    const wardObj = state.wards[activeWard];
+    const newCap = Math.max(1, Math.min(120, parseInt(document.getElementById('cfg-total-beds').value, 10) || wardObj.capacity));
+    wardObj.capacity = newCap;
+
+    const newBeds = [];
+    for (let i = 1; i <= newCap; i++) {
+      const existing = wardObj.beds.find(b => b.id === i);
+      if (existing) {
+        existing.code = formatBedCode(activeWard, i);
+        newBeds.push(existing);
+      } else {
+        newBeds.push({
+          id: i, code: formatBedCode(activeWard, i), name: '', risks: [], lastLocation: '', lastCheckTime: null, lastCheckedSlotKey: null, lastCheckIsLate: false
+        });
+      }
+    }
+    wardObj.beds = newBeds;
+
+    wardObj.groups.forEach((g, i) => {
+      g.name = document.getElementById(`cfg-gname-${i}`).value.trim() || g.name;
+      const rawStart = document.getElementById(`cfg-gstart-${i}`).value.trim();
+      const rawEnd = document.getElementById(`cfg-gend-${i}`).value.trim();
+      if (!rawStart || !rawEnd || parseInt(rawStart, 10) <= 0 || parseInt(rawEnd, 10) <= 0) {
+        g.start = 0;
+        g.end = 0;
+      } else {
+        g.start = parseInt(rawStart, 10);
+        g.end = parseInt(rawEnd, 10);
+      }
+    });
+
+    saveState();
+    closeGroupConfigModal();
+    renderGroupsView();
+  }
+
+  function closeGroupConfigModal() {
+    document.getElementById('group-config-modal').style.display = 'none';
+  }
+
+  // ================= 一鍵貼上名冊 & 逐床微調（受 PIN 碼保護） =================
+  function openRosterModal(tabName = 'paste') {
+    document.getElementById('paste-textarea').value = '';
+    const list = document.getElementById('edit-list');
+    list.innerHTML = '';
+    getActiveGroupBeds().forEach(b => {
+      list.innerHTML += `
+        <div class="edit-row">
+          <span>${b.code}</span>
+          <input type="text" id="edit-name-${b.id}" value="${b.name}" placeholder="空白代表空床">
+        </div>
+      `;
+    });
+    switchModalTab(tabName);
+    document.getElementById('roster-modal').style.display = 'flex';
+  }
+
+  function switchModalTab(tabName) {
+    document.getElementById('tab-paste').classList.toggle('active', tabName === 'paste');
+    document.getElementById('tab-manual').classList.toggle('active', tabName === 'manual');
+    document.getElementById('panel-paste').style.display = tabName === 'paste' ? 'block' : 'none';
+    document.getElementById('panel-manual').style.display = tabName === 'manual' ? 'block' : 'none';
+  }
+
+  function closeRosterModal() {
+    document.getElementById('roster-modal').style.display = 'none';
+  }
+
+  function fillWardToPasteBox() {
+    const lines = state.wards[activeWard].beds.map(b => `${b.code}	${b.name || '空床'}`);
+    document.getElementById('paste-textarea').value = lines.join('\n');
+  }
+
+  function processBatchPaste() {
+    const rawText = document.getElementById('paste-textarea').value.trim();
+    if (!rawText) {
+      alert('請先貼上床位與病人名單！');
+      return;
+    }
+
+    const wardObj = state.wards[activeWard];
+    const lines = rawText.split(/\r?\n/).map(l => l.trim()).filter(l => l !== '');
+    const parsedMap = new Map();
+    let hasExplicitBedNumber = false;
+    let maxDetectedBed = wardObj.capacity;
+
+    lines.forEach(line => {
+      const match = line.match(/^(?:[0-9A-Z]+[-_]?)?0?(\d{1,3})(?:床|號)?[\s\t:：、.-]+(.*)$/i);
+      if (match) {
+        const bedNum = parseInt(match[1], 10);
+        if (bedNum >= 1 && bedNum <= 120) {
+          hasExplicitBedNumber = true;
+          if (bedNum > maxDetectedBed) maxDetectedBed = bedNum;
+          let nameVal = match[2].trim();
+          if (nameVal === '空床' || nameVal === '(空床)' || nameVal === '空' || nameVal === '-') nameVal = '';
+          parsedMap.set(bedNum, nameVal);
+        }
+      } else {
+        const emptyBedMatch = line.match(/^(?:[0-9A-Z]+[-_]?)?0?(\d{1,3})(?:床|號)?$/i);
+        if (emptyBedMatch) {
+          const bedNum = parseInt(emptyBedMatch[1], 10);
+          if (bedNum >= 1 && bedNum <= 120) {
+            hasExplicitBedNumber = true;
+            if (bedNum > maxDetectedBed) maxDetectedBed = bedNum;
+            parsedMap.set(bedNum, '');
+          }
+        }
+      }
+    });
+
+    if (!hasExplicitBedNumber) {
+      lines.forEach((line, idx) => {
+        if (idx < wardObj.capacity) {
+          let nameVal = line.trim();
+          if (nameVal === '空床' || nameVal === '(空床)' || nameVal === '空' || nameVal === '-') nameVal = '';
+          parsedMap.set(idx + 1, nameVal);
+        }
+      });
+    }
+
+    if (maxDetectedBed > wardObj.capacity) {
+      wardObj.capacity = maxDetectedBed;
+      for (let i = wardObj.beds.length + 1; i <= maxDetectedBed; i++) {
+        wardObj.beds.push({
+          id: i, code: formatBedCode(activeWard, i), name: '', risks: [], lastLocation: '', lastCheckTime: null, lastCheckedSlotKey: null, lastCheckIsLate: false
+        });
+      }
+    }
+
+    let updatedCount = 0, unchangedCount = 0;
+    wardObj.beds.forEach(b => {
+      const newName = parsedMap.has(b.id) ? parsedMap.get(b.id) : '';
+      if (b.name !== newName) {
+        b.name = newName;
+        b.lastLocation = '';
+        b.lastCheckTime = null;
+        b.lastCheckedSlotKey = null;
+        b.lastCheckIsLate = false;
+        b.risks = [];
+        updatedCount++;
+      } else if (newName !== '') {
+        unchangedCount++;
+      }
+    });
+
+    saveState();
+    closeRosterModal();
+    renderRosterView();
+    alert(`✅ ${activeWard}病房 名冊更新完成！\n• 異動更新：${updatedCount} 床\n• 續住保留：${unchangedCount} 床`);
+  }
+
+  function saveManualNames() {
+    getActiveGroupBeds().forEach(b => {
+      const val = document.getElementById(`edit-name-${b.id}`).value.trim();
+      if (b.name !== val) {
+        b.name = val;
+        b.lastLocation = '';
+        b.lastCheckTime = null;
+        b.lastCheckedSlotKey = null;
+        b.lastCheckIsLate = false;
+        if (!val) b.risks = [];
+      }
+    });
+    saveState();
+    closeRosterModal();
+    renderRosterView();
+  }
+
+  let pendingExportScope = 'ward'; // 'ward' or 'all'
+
+  function getLocalDateStr(d = new Date()) {
+    const y = d.getFullYear();
+    const m = (d.getMonth() + 1).toString().padStart(2, '0');
+    const day = d.getDate().toString().padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+
+  function openExportRangeModal(scope) {
+    pendingExportScope = scope;
+    const titleEl = document.getElementById('export-modal-title');
+    titleEl.textContent = scope === 'all'
+      ? '🔒 匯出全院查房紀錄（選擇日期區間）'
+      : `📥 匯出 ${activeWard}病房 查房紀錄（選擇日期區間）`;
+    setExportDatePreset('today');
+    document.getElementById('export-range-modal').style.display = 'flex';
+  }
+
+  function closeExportRangeModal() {
+    document.getElementById('export-range-modal').style.display = 'none';
+  }
+
+  function setExportDatePreset(preset) {
+    const now = new Date();
+    const todayStr = getLocalDateStr(now);
+    const startInput = document.getElementById('export-start-date');
+    const endInput = document.getElementById('export-end-date');
+
+    if (preset === 'today') {
+      startInput.value = todayStr;
+      endInput.value = todayStr;
+    } else if (preset === '7days') {
+      const past = new Date(now);
+      past.setDate(now.getDate() - 6);
+      startInput.value = getLocalDateStr(past);
+      endInput.value = todayStr;
+    } else if (preset === 'month') {
+      const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+      startInput.value = getLocalDateStr(firstDay);
+      endInput.value = todayStr;
+    } else if (preset === 'all') {
+      startInput.value = '';
+      endInput.value = '';
+    }
+  }
+
+  function extractLogDate(row) {
+    // row.slot format: "YYYY-MM-DD HH:MM~HH:MM", row.time format: "YYYY-MM-DD HH:MM:SS"
+    if (row.slot && /^\d{4}-\d{2}-\d{2}/.test(row.slot)) {
+      return row.slot.slice(0, 10);
+    }
+    if (row.time && /^\d{4}-\d{2}-\d{2}/.test(row.time)) {
+      return row.time.slice(0, 10);
+    }
+    return '';
+  }
+
+  function confirmExportWithRange() {
+    const startVal = document.getElementById('export-start-date').value;
+    const endVal = document.getElementById('export-end-date').value;
+
+    if (startVal && endVal && startVal > endVal) {
+      alert('起始日期不能晚於結束日期！');
+      return;
+    }
+
+    let baseLogs = pendingExportScope === 'all'
+      ? state.logs
+      : state.logs.filter(l => l.ward === activeWard);
+
+    const filteredLogs = baseLogs.filter(row => {
+      const dStr = extractLogDate(row);
+      if (!dStr) return true;
+      if (startVal && dStr < startVal) return false;
+      if (endVal && dStr > endVal) return false;
+      return true;
+    });
+
+    if (filteredLogs.length === 0) {
+      alert('所選日期區間內尚無查房紀錄！');
+      return;
+    }
+
+    const rangeTag = (startVal || endVal)
+      ? `${startVal || '起'}至${endVal || '今'}`
+      : '全部日期';
+    const prefix = pendingExportScope === 'all'
+      ? `全院急性病房行動查房紀錄_${rangeTag}`
+      : `${activeWard}病房行動查房紀錄_${rangeTag}`;
+
+    closeExportRangeModal();
+    downloadCSV(filteredLogs, prefix);
+  }
+
+  function exportWardCSV() {
+    if (!verifyAdminPin(`匯出 ${activeWard} 病房查房紀錄`)) return;
+    const wardLogs = state.logs.filter(l => l.ward === activeWard);
+    if (wardLogs.length === 0) {
+      alert(`目前「${activeWard}病房」尚無查房紀錄可匯出！`);
+      return;
+    }
+    openExportRangeModal('ward');
+  }
+
+  function exportAllCSV() {
+    if (!verifyAdminPin('匯出全院查房紀錄')) return;
+    if (state.logs.length === 0) {
+      alert('目前尚無任何查房紀錄可匯出！');
+      return;
+    }
+    openExportRangeModal('all');
+  }
+
+  function resolveGroupNameForRow(row) {
+    if (row.groupName) return row.groupName;
+    const wObj = state.wards[row.ward];
+    if (!wObj || !row.bedCode) return '';
+    const m = row.bedCode.match(/-(\d+)$/);
+    if (!m) return '';
+    const bedNum = parseInt(m[1], 10);
+    const grp = wObj.groups.find(g => g.start > 0 && bedNum >= g.start && bedNum <= g.end);
+    return grp ? grp.name : '';
+  }
+
+  function downloadCSV(logList, filePrefix) {
+    let csv = '\uFEFF病房,照護組別,規定輪次,時效判定(15分期限),實際登錄時間,床號,病人姓名,所在位置/狀態,特殊防範註記,查房人員\n';
+    logList.forEach(row => {
+      const grpLabel = resolveGroupNameForRow(row);
+      csv += `"${row.ward}","${grpLabel}","${row.slot || ''}","${row.timeliness || ''}","${row.time}","${row.bedCode}","${row.name}","${row.location}","${row.risks}","${row.staff}"\n`;
+    });
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${filePrefix}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  init();
+</script>
+</body>
+</html>
