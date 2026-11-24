@@ -1,0 +1,25 @@
+{
+  "name": "桃療智慧查房",
+  "short_name": "桃療智慧查房",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#087E73",
+  "theme_color": "#087E73",
+  "lang": "zh-TW",
+  "icons": [
+    {
+      "src": "./icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
